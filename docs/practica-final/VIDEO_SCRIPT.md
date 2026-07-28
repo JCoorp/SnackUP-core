@@ -24,8 +24,8 @@ Abrir la ejecución de GitHub Actions y mostrar:
 
 - pruebas Flutter y compilación;
 - imagen Docker;
-- k6 con 7,031 solicitudes, 100 usuarios máximos, 0 % de error y p95 de
-  0.744 ms;
+- k6 con 7,025 solicitudes, 100 usuarios máximos, 0 % de error y p95 de
+  1.143 ms;
 - Lighthouse con rendimiento de hasta 86 y accesibilidad de 93.
 
 ## 3:10-4:10 - Liberación y privacidad

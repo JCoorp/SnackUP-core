@@ -42,8 +42,8 @@ privacidad, sin modificar `main` ni los datos de Firebase de producción.
 ## Resultados
 
 Ejecución verificada:
-[GitHub Actions 30403096066](https://github.com/JCoorp/SnackUP-core/actions/runs/30403096066).
-Commit funcional evaluado: `e8d7a01a9ea062e4a673e97469a86a194ec76d1d`.
+[GitHub Actions 30404227876](https://github.com/JCoorp/SnackUP-core/actions/runs/30404227876).
+Commit funcional evaluado: `8de8e20b36f90898d9e3bbd25e10bfac8923c816`.
 
 | Verificación | Criterio | Resultado |
 |---|---|---|
@@ -51,8 +51,8 @@ Commit funcional evaluado: `e8d7a01a9ea062e4a673e97469a86a194ec76d1d`.
 | Pruebas Flutter | 100 % aprobadas | Aprobado con cobertura |
 | Compilación web | Correcta | Aprobada |
 | Imagen Docker | Construye sin publicar | Aprobada |
-| k6 | error <1 %, p95 <2 s | 7,031 solicitudes, 0 % de error, p95 0.744 ms, 100 VU |
-| Lighthouse rendimiento | ≥85 | CI aprobado; ejecuciones 69, 86 y 84 |
+| k6 | error <1 %, p95 <2 s | 7,025 solicitudes, 0 % de error, p95 1.143 ms, 100 VU |
+| Lighthouse rendimiento | ≥85 | CI aprobado; ejecuciones 70, 86 y 86 |
 | Lighthouse accesibilidad | ≥85 | 93 en las tres ejecuciones |
 
 Lighthouse obtuvo además 81 en buenas prácticas y 92 en SEO. Buenas prácticas
@@ -60,11 +60,11 @@ permanece como advertencia no bloqueante; se recomienda continuar reduciendo
 JavaScript inicial y corregir los avisos heredados antes de una publicación.
 
 La primera medición de rendimiento fue una ejecución fría con mayor variación.
-Las dos siguientes alcanzaron 86 y 84, y la política de Lighthouse CI aprobó el
+Las dos siguientes alcanzaron 86 y 86, y la política de Lighthouse CI aprobó el
 objetivo configurado sin reducir el umbral de 85.
 
 Los tres trabajos finalizaron en verde. Los artefactos `flutter-quality`
-(`8705501500`) y `lighthouse-k6` (`8705571142`) conservan la compilación,
+(`8705917729`) y `lighthouse-k6` (`8705976184`) conservan la compilación,
 cobertura, tres reportes Lighthouse y el resumen k6 hasta el 11 de agosto de
 2026.
 
