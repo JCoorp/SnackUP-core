@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:snackup/core/validation/auth_validators.dart';
 import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
@@ -206,15 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         keyboardType: TextInputType.name,
                         textCapitalization: TextCapitalization.words,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Por favor, ingresa tu nombre';
-                          }
-                          if (value.trim().split(' ').length < 2) {
-                            return 'Ingresa al menos nombre y apellido';
-                          }
-                          return null;
-                        },
+                        validator: AuthValidators.fullName,
                       ),
                     ],
                   ),
@@ -246,15 +239,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor, ingresa tu correo';
-                          }
-                          if (!value.endsWith('@utsjr.edu.mx')) {
-                            return 'Debe ser un correo @utsjr.edu.mx';
-                          }
-                          return null;
-                        },
+                        validator: AuthValidators.institutionalEmail,
                       ),
                     ],
                   ),
@@ -286,15 +271,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Ingresa tu número de control';
-                          }
-                          if (value.length < 8) {
-                            return 'El número de control debe tener al menos 8 dígitos';
-                          }
-                          return null;
-                        },
+                        validator: AuthValidators.controlNumber,
                       ),
                     ],
                   ),
@@ -316,7 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         controller: _passwordController,
                         style: AppText.body,
                         decoration: InputDecoration(
-                          hintText: 'Mínimo 6 caracteres',
+                          hintText: 'Mínimo 8 caracteres',
                           hintStyle: AppText.notes.copyWith(
                             color: AppColors.textSecondary.withOpacity(0.6),
                           ),
@@ -335,12 +312,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         obscureText: _obscurePassword,
-                        validator: (value) {
-                          if (value == null || value.length < 6) {
-                            return 'La contraseña debe tener al menos 6 caracteres';
-                          }
-                          return null;
-                        },
+                        validator: AuthValidators.password,
                       ),
                     ],
                   ),
@@ -381,12 +353,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         obscureText: _obscureConfirmPassword,
-                        validator: (value) {
-                          if (value != _passwordController.text) {
-                            return 'Las contraseñas no coinciden';
-                          }
-                          return null;
-                        },
+                        validator: (value) => AuthValidators.confirmPassword(
+                          value,
+                          _passwordController.text,
+                        ),
                       ),
                     ],
                   ),

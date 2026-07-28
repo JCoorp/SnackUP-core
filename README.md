@@ -1,106 +1,85 @@
-# SnackUP-Core `v1.0`
+# SnackUp
 
-![SnackUP Banner](https://img.shields.io/badge/SnackUP-Official_Production_Repo-orange?style=for-the-badge&logo=fastapi)
-[![Flutter Version](https://img.shields.io/badge/Flutter-3.29.0%2B-02569B?style=flat&logo=flutter)](https://flutter.dev)
-[![Firebase](https://img.shields.io/badge/Backend-Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com)
+Aplicación Flutter para consultar menús, realizar pedidos y administrar la
+operación de la cafetería de la UTSJR.
 
-Bienvenido al repositorio central de **SnackUP**. Esta es la versión profesional destinada a producción, optimizada para escalabilidad y rendimiento.
+[![Flutter](https://img.shields.io/badge/Flutter-3.32.8-02569B?logo=flutter)](https://flutter.dev)
+[![Firebase](https://img.shields.io/badge/Firebase-snackup--8fe96-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
+[![Version](https://img.shields.io/badge/version-1.1.0--rc-orange)](CHANGELOG.md)
 
----
+## Entorno
 
-## ⚠️ Regla de Oro (Políticas de Git)
+- Flutter 3.32.8 y Dart 3.8 o posterior.
+- Firebase Authentication y Cloud Firestore.
+- Proyecto Firebase: `snackup-8fe96`.
+- Sitio vigente: <https://snackup-8fe96.web.app>.
 
-> **Prohibido hacer push directo a `main` o `develop`.**
-> Todo cambio debe integrarse mediante **Pull Request (PR)** y requiere al menos **1 aprobación** de un socio para ser fusionado.
+La configuración web de Firebase es configuración pública del cliente. Las
+llaves de cuenta de servicio, certificados TLS y archivos `.env` nunca deben
+guardarse en Git.
 
----
-
-## 🛠️ Stack Tecnológico
-
-| Componente | Tecnología | Detalle |
-| :--- | :--- | :--- |
-| **Framework** | Flutter 3.29.0+ | UI Multiplataforma |
-| **Lenguaje** | Dart (SDK >=3.8.0) | Tipado fuerte |
-| **Backend** | Firebase | Firestore, Auth, Storage |
-| **Estado** | Provider | ChangeNotifiers |
-
----
-
-## 📋 Requisitos Previos
-
-Para que el proyecto compile a la primera, es **obligatorio**:
-
-1. **Actualizar Flutter:**
-
-```bash
-flutter upgrade
-```
-
-Verifica con `flutter --version` que estés en la 3.29.0 o superior.
-
-2. **Firebase CLI:**
-
-```bash
-npm install -g firebase-tools
-firebase login
-```
-
----
-
-## ⚙️ Configuración Inicial
-
-Si es la primera vez que clonas el repo, sigue este orden exacto:
-
-1. **Obtener dependencias:**
+## Ejecución local
 
 ```bash
 flutter pub get
+flutter run -d chrome
 ```
 
-2. **Vincular Firebase:**
+No es necesario ejecutar `flutterfire configure` para compilar la configuración
+actual. Si se regenera, debe seleccionarse únicamente `snackup-8fe96` y revisarse
+el cambio antes de confirmarlo.
+
+## Calidad
 
 ```bash
-flutterfire configure
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test --coverage
+flutter build web --release
 ```
 
-Selecciona el proyecto **snackup-official** cuando el terminal te lo solicite.
+La práctica final añade pruebas unitarias, de caja blanca, de integración,
+Lighthouse, k6 con 50-100 usuarios virtuales y una compilación Docker sin
+publicación. Consulte [el plan de pruebas](docs/testing/TEST_PLAN.md).
 
-3. **Limpieza (Solo si algo falla):**
+## Docker
+
+Validación local de la imagen, sin TLS:
 
 ```bash
-flutter clean && flutter pub get
+docker compose -f compose.yaml -f compose.local.yaml up --build web
+curl --fail http://localhost:8080/healthz
 ```
 
----
+El despliegue con Nginx, HTTPS y firewall se describe en
+[DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md). Esos pasos requieren un servidor,
+dominio y certificado autorizados.
 
-## 🌿 Flujo de Trabajo (GitFlow Pro)
+## Flujo Git
 
-Para mantener el código limpio y profesional, seguimos este estándar:
+`main` no recibe cambios directos. Cada mejora se implementa en una rama y se
+integra mediante Pull Request revisado. Los prefijos recomendados son `feat/`,
+`fix/`, `docs/` y `agent/`.
 
-| Acción | Rama / Prefijo | Ejemplo de Commit |
-| :--- | :--- | :--- |
-| **Nueva Mejora** | `feat/` | `feat: add qr scanner integration` |
-| **Arreglo de Bug** | `fix/` | `fix: resolve login timeout` |
-| **Refactor** | `refactor/` | `refactor: optimize provider logic` |
+## Documentación
 
-> [!TIP]
-> **Antes de empezar cualquier tarea:** Asegúrate de estar al día ejecutando `git pull origin develop` para evitar conflictos de merge.
+- [Plan de pruebas](docs/testing/TEST_PLAN.md)
+- [Despliegue y rollback](docs/deployment/DEPLOYMENT.md)
+- [Revisión de privacidad](docs/security/PRIVACY_REVIEW.md)
+- [Aviso de privacidad propuesto](docs/security/PRIVACY_NOTICE.md)
+- [Liberación 1.1.0](docs/release/RELEASE_1.1.0.md)
+- [Reporte de práctica final](docs/practica-final/REPORT.md)
+- [PDF final verificado de la práctica](output/pdf/Practica_Final_SnackUp_1.1.0.pdf)
 
----
-
-## 📁 Estructura del Proyecto
+## Estructura principal
 
 ```text
 lib/
-├── models/      # Definición de datos (Data classes)
-├── services/    # Lógica de Firebase y APIs externas
-├── providers/   # Manejo de estado global (ChangeNotifiers)
-├── screens/     # Pantallas principales de la UI
-└── widgets/     # Componentes reutilizables
+├── core/       # Reglas de negocio y validación
+├── features/   # Pantallas agrupadas por función
+└── theme/      # Colores y tipografía
+test/           # Pruebas Flutter
+tests/          # Pruebas externas, como k6
+deploy/         # Configuración de Nginx
+docs/           # Operación, seguridad y evidencias
 ```
-
----
-
-<p align="center">
-Desarrollado con ❤️ por el equipo de <strong>SnackUP</strong>
-</p>

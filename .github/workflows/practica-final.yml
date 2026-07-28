@@ -1,0 +1,155 @@
+name: Practica final
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - "agent/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: practica-final-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.32.8"
+
+jobs:
+  flutter-quality:
+    name: Flutter quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: >-
+          dart format --output=none --set-exit-if-changed
+          lib/core
+          lib/firebase_options.dart
+          test
+
+      - name: Analyze
+        # El código heredado aún contiene avisos informativos de APIs
+        # deprecadas, pero errores y warnings siguen bloqueando el PR.
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Build Flutter Web
+        run: flutter build web --release
+
+      - name: Upload Flutter evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-quality
+          path: |
+            coverage/lcov.info
+            build/web
+          retention-days: 14
+
+  docker-image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build without publishing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: snackup-web:ci
+
+  web-audits:
+    name: Lighthouse and k6
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Build Flutter Web
+        run: |
+          flutter pub get
+          flutter build web --release
+
+      - name: Start local Nginx
+        run: |
+          mkdir -p artifacts
+          docker run --detach --rm \
+            --name snackup-audit \
+            --publish 127.0.0.1:8080:8080 \
+            --volume "$PWD/build/web:/usr/share/nginx/html:ro" \
+            --volume "$PWD/deploy/web/default.conf:/etc/nginx/conf.d/default.conf:ro" \
+            nginx:1.28-alpine
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/healthz > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs snackup-audit
+          exit 1
+
+      - name: Install Lighthouse CI
+        run: npm install --global @lhci/cli@0.15.x
+
+      - name: Collect Lighthouse audits
+        run: lhci collect
+
+      - name: Set up k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run 50-100 VU load test
+        env:
+          TARGET_URL: http://127.0.0.1:8080
+        run: k6 run tests/performance/k6-smoke.js
+
+      - name: Check Lighthouse targets
+        run: |
+          lhci assert
+
+      - name: Export Lighthouse reports
+        if: always()
+        run: lhci upload
+
+      - name: Stop local Nginx
+        if: always()
+        run: docker stop snackup-audit || true
+
+      - name: Upload web evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-k6
+          path: artifacts
+          retention-days: 14

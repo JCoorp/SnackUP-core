@@ -4,6 +4,15 @@
 *.pyc
 *.swp
 .DS_Store
+
+# Evidencias generadas y secretos de despliegue
+artifacts/
+coverage/
+tmp/
+deploy/certs/*.pem
+deploy/certs/*.key
+deploy/certs/*.crt
+deploy/certs/*.p12
 .atom/
 .build/
 .buildlog/
@@ -47,6 +56,13 @@ app.*.map.json
 # Secretos y Variables de Entorno
 .env
 *.env
+serviceAccountKey*.json
+*-firebase-adminsdk-*.json
+snackup-firestore-*.json
+snackup-firestore-*.json.sha256
+snackup-auth-*.json
+snackup-auth-*.json.sha256
+auth-project-config.json
 ios/Flutter/dart_tool/
 android/key.properties
 ios/Runner/GoogleService-Info.plist

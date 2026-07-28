@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart'; // <--- IMPORTANTE: Agregué esto para usar kIsWeb
 
-// Tus imports originales
 import 'features/auth/auth_gate.dart';
 import 'firebase_options.dart';
 import 'theme/app_colors.dart';
@@ -12,37 +9,8 @@ import 'theme/app_text.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // --- AQUÍ ESTÁ LA MAGIA ---
-  // Si es Web, usamos las llaves manuales. Si es Android, usa el archivo generado.
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyDK5N-TA3bA7VKv5TJQqUXICA617wOywzU",
-        authDomain: "snackup-8fe96.firebaseapp.com",
-        projectId: "snackup-8fe96",
-        storageBucket: "snackup-8fe96.firebasestorage.app",
-        messagingSenderId: "685155856831",
-        appId: "1:685155856831:web:8047d0df9ed1522ff5b10a",
-        measurementId: "G-PE33SNB39W",
-      ),
-    );
-  } else {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
-  // ---------------------------
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Configuración de notificaciones (solo intentamos si ya se inicializó)
-  try {
-    FirebaseMessaging messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission(
-      alert: true, badge: true, sound: true,
-    );
-  } catch (e) {
-    print('Nota: Las notificaciones pueden no estar configuradas en Web o dieron error: $e');
-  }
-  
   runApp(const SnackUpApp());
 }
 
