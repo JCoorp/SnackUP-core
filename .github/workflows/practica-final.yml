@@ -102,23 +102,29 @@ jobs:
           flutter pub get
           flutter build web --release
 
-      - name: Start local server
+      - name: Start local Nginx
         run: |
           mkdir -p artifacts
-          python3 -m http.server 8080 --directory build/web > /tmp/snackup-http.log 2>&1 &
+          docker run --detach --rm \
+            --name snackup-audit \
+            --publish 127.0.0.1:8080:8080 \
+            --volume "$PWD/build/web:/usr/share/nginx/html:ro" \
+            --volume "$PWD/deploy/web/default.conf:/etc/nginx/conf.d/default.conf:ro" \
+            nginx:1.28-alpine
           for attempt in {1..20}; do
-            if curl --fail --silent http://127.0.0.1:8080/ > /dev/null; then
+            if curl --fail --silent http://127.0.0.1:8080/healthz > /dev/null; then
               exit 0
             fi
             sleep 1
           done
-          cat /tmp/snackup-http.log
+          docker logs snackup-audit
           exit 1
 
-      - name: Run Lighthouse
-        run: |
-          npm install --global @lhci/cli@0.15.x
-          lhci autorun
+      - name: Install Lighthouse CI
+        run: npm install --global @lhci/cli@0.15.x
+
+      - name: Collect Lighthouse audits
+        run: lhci collect
 
       - name: Set up k6
         uses: grafana/setup-k6-action@v1
@@ -127,6 +133,18 @@ jobs:
         env:
           TARGET_URL: http://127.0.0.1:8080
         run: k6 run tests/performance/k6-smoke.js
+
+      - name: Check Lighthouse targets
+        run: |
+          lhci assert
+
+      - name: Export Lighthouse reports
+        if: always()
+        run: lhci upload
+
+      - name: Stop local Nginx
+        if: always()
+        run: docker stop snackup-audit || true
 
       - name: Upload web evidence
         if: always()

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'features/auth/auth_gate.dart';
 import 'firebase_options.dart';
@@ -12,18 +11,6 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Configuración de notificaciones (solo intentamos si ya se inicializó)
-  try {
-    FirebaseMessaging messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission(
-      alert: true, badge: true, sound: true,
-    );
-  } catch (e) {
-    debugPrint(
-      'Las notificaciones no están disponibles en esta plataforma: $e',
-    );
-  }
-  
   runApp(const SnackUpApp());
 }
 
