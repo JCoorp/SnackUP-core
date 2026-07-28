@@ -1,144 +1,94 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html>
+<html lang="es">
+<head>
   <base href="/">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="SnackUp App">
-
+  <meta
+    name="description"
+    content="SnackUp permite consultar menús y realizar pedidos en la cafetería universitaria."
+  >
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+  <meta name="theme-color" content="#4a54df">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SnackUp">
-  
-  <title>SnackUp</title>
+
+  <title>SnackUp UTSJR</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="favicon.ico">
-  
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
   <style>
+    html,
     body {
-      margin: 0;
-      padding: 0;
-      /* ESTA ES LA LÍNEA MÁGICA DEL DEGRADADO */
-      background: linear-gradient(to bottom, #4a54df, #c942ba);
-      /* -------------------------------------- */
-      height: 100vh;
+      height: 100%;
+    }
+
+    body {
+      align-items: center;
+      background: linear-gradient(180deg, #4a54df, #c942ba);
       display: flex;
       justify-content: center;
-      align-items: center;
+      margin: 0;
     }
 
-    /* El contenedor de tu logo */
-    .loading-container {
-      text-align: center;
-      /* Opcional: una pequeña animación de pulso */
+    .splash {
       animation: pulse 2s infinite ease-in-out;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
     }
 
-    /* Tu imagen de logo */
-    .loading-logo {
-      width: 150px; /* Ajusta este tamaño si lo quieres más grande o chico */
+    .splash img {
       height: auto;
+      width: 150px;
     }
 
-    /* Definición de la animación de pulso suave */
+    .splash p {
+      margin: 12px 0 0;
+    }
+
     @keyframes pulse {
-      0% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.05); opacity: 0.8; }
-      100% { transform: scale(1); opacity: 1; }
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: .82;
+        transform: scale(1.04);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .splash {
+        animation: none;
+      }
     }
   </style>
-  <style id="splash-screen-style">
-    html {
-      height: 100%
-    }
-
-    body {
-      margin: 0;
-      min-height: 100%;
-      background-color: #4a54df;
-          background-size: 100% 100%;
-    }
-
-    .center {
-      margin: 0;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      -ms-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
-    }
-
-    .contain {
-      display:block;
-      width:100%; height:100%;
-      object-fit: contain;
-    }
-
-    .stretch {
-      display:block;
-      width:100%; height:100%;
-    }
-
-    .cover {
-      display:block;
-      width:100%; height:100%;
-      object-fit: cover;
-    }
-
-    .bottom {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      -ms-transform: translate(-50%, 0);
-      transform: translate(-50%, 0);
-    }
-
-    .bottomLeft {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-    }
-
-    .bottomRight {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-    }
-  </style>
-  <script id="splash-screen-script">
-    function removeSplashFromWeb() {
-      document.getElementById("splash")?.remove();
-      document.getElementById("splash-branding")?.remove();
-      document.body.style.background = "transparent";
-    }
-  </script>
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
-</head>
-<body>
-  <picture id="splash">
-      <source srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x, splash/img/light-3x.png 3x, splash/img/light-4x.png 4x" media="(prefers-color-scheme: light)">
-      <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
-      <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
-  </picture>
-  <div class="loading-container">
-    <img src="logo_carga.png" class="loading-logo">
-  </div>
-
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDK5N-TA3bA7VKv5TJQqUXICA617wOywzU",
-      authDomain: "snackup-8fe96.firebaseapp.com",
-      projectId: "snackup-8fe96",
-      storageBucket: "snackup-8fe96.firebasestorage.app",
-      messagingSenderId: "685155856831",
-      appId: "1:685155856831:web:8047d0df9ed1522ff5b10a",
-      measurementId: "G-PE33SNB39W"
-    };
-    firebase.initializeApp(firebaseConfig);
+    function removeSplashFromWeb() {
+      document.getElementById('splash')?.remove();
+      document.body.style.background = 'transparent';
+      document.body.style.display = 'block';
+    }
   </script>
+</head>
+<body>
+  <main id="splash" class="splash" aria-live="polite" aria-busy="true">
+    <img src="logo_carga.png" alt="Logotipo de SnackUp">
+    <p>Cargando SnackUp…</p>
+  </main>
 
-  <script src="main.dart.js" type="application/javascript"></script>
+  <noscript>
+    SnackUp necesita JavaScript habilitado para funcionar.
+  </noscript>
 
-</body></html>
+  <script src="main.dart.js" defer></script>
+</body>
+</html>

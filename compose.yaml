@@ -1,0 +1,40 @@
+name: snackup
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        FLUTTER_VERSION: "3.32.8"
+    image: snackup-web:1.1.0
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - frontend
+    security_opt:
+      - no-new-privileges:true
+
+  edge:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      NGINX_ENVSUBST_FILTER: ^SNACKUP_DOMAIN$
+      SNACKUP_DOMAIN: ${SNACKUP_DOMAIN:?Define SNACKUP_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/templates:/etc/nginx/templates:ro
+      - ./deploy/certs:/etc/nginx/certs:ro
+    networks:
+      - frontend
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  frontend:
+    driver: bridge

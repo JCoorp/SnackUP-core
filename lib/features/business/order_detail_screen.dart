@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../auth/auth_gate.dart';
+import 'package:snackup/core/orders/order_repository.dart';
+import 'package:snackup/core/orders/order_status.dart';
 import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
@@ -14,12 +15,19 @@ class OrderDetailScreen extends StatefulWidget {
 }
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  late final OrderRepository _orders = OrderRepository(
+    FirestoreOrderDataStore(FirebaseFirestore.instance),
+  );
+
   DocumentReference get _orderRef =>
       FirebaseFirestore.instance.collection('orders').doc(widget.orderId);
 
   Future<void> _updateOrderStatus(String newStatus) async {
     try {
-      await _orderRef.update({'status': newStatus});
+      await _orders.changeStatus(
+        orderId: widget.orderId,
+        next: OrderStatus.fromFirestore(newStatus),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -37,6 +45,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         }
       }
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al actualizar: ${e.toString()}'),

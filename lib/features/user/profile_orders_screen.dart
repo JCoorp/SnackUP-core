@@ -210,8 +210,6 @@ class _ProfileOrdersScreenState extends State<ProfileOrdersScreen>
     final String numeroDeControl = order['userNumeroDeControl'] ?? '0000';
     final double totalPrice = order['totalPrice'] ?? 0.0;
     final List<dynamic> items = order['items'] ?? [];
-    final Timestamp? createdAt = order['createdAt'] as Timestamp?;
-
     // Determinar paso actual del stepper
     int currentStep = 0;
     String statusText = 'Recibido';
