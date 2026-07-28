@@ -69,7 +69,7 @@ integra mediante Pull Request revisado. Los prefijos recomendados son `feat/`,
 - [Aviso de privacidad propuesto](docs/security/PRIVACY_NOTICE.md)
 - [Liberación 1.1.0](docs/release/RELEASE_1.1.0.md)
 - [Reporte de práctica final](docs/practica-final/REPORT.md)
-- [PDF preliminar de la práctica](output/pdf/Practica_Final_SnackUp_1.1.0.pdf)
+- [PDF final verificado de la práctica](output/pdf/Practica_Final_SnackUp_1.1.0.pdf)
 
 ## Estructura principal
 

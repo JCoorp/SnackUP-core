@@ -24,12 +24,13 @@ Abrir la ejecución de GitHub Actions y mostrar:
 
 - pruebas Flutter y compilación;
 - imagen Docker;
-- k6 con 50-100 usuarios y p95;
-- Lighthouse, con rendimiento y accesibilidad de al menos 85.
+- k6 con 7,031 solicitudes, 100 usuarios máximos, 0 % de error y p95 de
+  0.744 ms;
+- Lighthouse con rendimiento de hasta 86 y accesibilidad de 93.
 
 ## 3:10-4:10 - Liberación y privacidad
 
-Mostrar `CHANGELOG.md`, la versión 1.1.0+2 y el rollback al commit `c8c6d2c`.
+Mostrar `CHANGELOG.md`, la versión 1.1.0+2 y el rollback al commit `b7abff6`.
 Resumir el inventario de datos, el aviso propuesto y la revisión pendiente de
 las reglas reales de Firestore.
 

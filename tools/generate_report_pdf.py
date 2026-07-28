@@ -297,7 +297,11 @@ def _markdown_story(path: Path, styles):
         numbered = re.match(r"^(\d+)\.\s+(.+)$", stripped)
         checkbox = re.match(r"^-\s+\[([ xX])\]\s+(.+)$", stripped)
         if checkbox:
-            mark = "✓" if checkbox.group(1).lower() == "x" else "□"
+            mark = (
+                "<b>LISTO:</b>"
+                if checkbox.group(1).lower() == "x"
+                else "<b>PENDIENTE:</b>"
+            )
             story.append(
                 Paragraph(f"{mark} {_inline(checkbox.group(2))}", styles["bullet"])
             )
@@ -373,13 +377,14 @@ def build() -> None:
             ),
             Spacer(1, 10 * mm),
             Paragraph(
-                "<b>ESTADO PRELIMINAR:</b> los resultados numéricos se "
-                "actualizarán únicamente después de la ejecución real de CI.",
+                "<b>ESTADO VERIFICADO:</b> Flutter, pruebas, Docker, Lighthouse "
+                "y k6 fueron validados en GitHub Actions. No se realizó "
+                "despliegue ni se modificó Firebase.",
                 ParagraphStyle(
                     "Notice",
                     parent=styles["body"],
-                    backColor=colors.HexColor("#FFF4D6"),
-                    borderColor=colors.HexColor("#F0B429"),
+                    backColor=colors.HexColor("#E8F7EE"),
+                    borderColor=colors.HexColor("#2E8B57"),
                     borderWidth=0.8,
                     borderPadding=4 * mm,
                     textColor=INK,

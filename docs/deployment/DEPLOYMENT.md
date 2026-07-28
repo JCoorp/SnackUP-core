@@ -95,17 +95,17 @@ Use un entorno de staging o una ventana autorizada.
 
 ```bash
 git fetch origin --tags
-git switch --detach c8c6d2c
+git switch --detach b7abff6
 docker compose build --no-cache web
 docker compose up -d --force-recreate web edge
 curl --fail "https://${SNACKUP_DOMAIN}/"
 ```
 
-`c8c6d2c` es el commit base conocido de la versión inicial. Una vez que exista
-una etiqueta aprobada para esa versión, puede usarse la etiqueta equivalente.
-El rollback de código no modifica Firestore. Si una versión incluye una
-migración de datos, debe ejecutarse primero el plan específico descrito en la
-documentación de la versión.
+`b7abff6` es el estado de `main` inmediatamente anterior a la práctica. Una vez
+que exista una etiqueta aprobada para esa versión, puede usarse la etiqueta
+equivalente. El rollback de código no modifica Firestore. Si una versión incluye
+una migración de datos, debe ejecutarse primero el plan específico descrito en
+la documentación de la versión.
 
 ## Referencias técnicas
 

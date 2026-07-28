@@ -33,13 +33,13 @@ El despliegue se realiza siguiendo `docs/deployment/DEPLOYMENT.md`.
 
 ## Rollback
 
-La versión base conocida es el commit `c8c6d2c` (`chore: initial release
-v1.0`). Si 1.1.0 falla, se reconstruye ese commit en el servidor, sin reescribir
-el historial:
+La versión base inmediatamente anterior a la práctica es el commit `b7abff6`
+(`Merge pull request #1 from Gabino-RG/docs/update-readme-guide`). Si 1.1.0
+falla, se reconstruye ese commit en el servidor, sin reescribir el historial:
 
 ```bash
 git fetch origin --tags
-git switch --detach c8c6d2c
+git switch --detach b7abff6
 docker compose build --no-cache web
 docker compose up -d --force-recreate web edge
 ```
