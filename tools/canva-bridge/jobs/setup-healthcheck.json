@@ -1,0 +1,9 @@
+{
+  "id": "setup-healthcheck",
+  "action": "list_designs",
+  "params": {
+    "limit": 5,
+    "ownership": "any",
+    "sort_by": "modified_descending"
+  }
+}
