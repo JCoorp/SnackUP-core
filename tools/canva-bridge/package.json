@@ -1,0 +1,13 @@
+{
+  "name": "snackup-canva-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "oauth": "node bridge.mjs oauth",
+    "daemon": "node bridge.mjs daemon",
+    "cli": "node bridge.mjs cli",
+    "check": "node --check bridge.mjs"
+  }
+}
