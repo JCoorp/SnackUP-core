@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {spawnSync} = require('node:child_process');
-const {validateEvidence, projectState, redact, scene, qualityGateProof} = require('./record_part2.cjs');
+const {validateEvidence, projectState, redact, scene, qualityGateProof, renderFrame} = require('./record_part2.cjs');
 
 function fixture(failure = false) {
   const stages = ['checkout', 'analyze', 'unit', 'sonar-scan', 'quality-gate', failure ? 'controlled-failure' : 'artifact', 'notification'].map((id, index) => ({
@@ -130,4 +130,38 @@ test('real rejected Quality Gate is accepted as failed evidence and displayed on
   const success = fixture();
   assert.deepEqual(qualityGateProof(projectState(success.state, Infinity).state,
     success.sonar, validateEvidence(success, 'success').gateIndexes), {value:'OK', passed:true});
+});
+
+
+test('browser frame works with API-loaded UI and no bundled evidence globals', () => {
+  const elements = new Map();
+  const element = () => ({value:'', textContent:'', className:'', style:{setProperty(){}},
+    children:[], scrollHeight:100, scrollTop:0, offsetTop:0, clientHeight:50,
+    offsetHeight:50, append(...children){this.children.push(...children);},
+    replaceChildren(){this.children=[];},
+    getBoundingClientRect(){return {top:1000, height:50};},
+    parentElement:{querySelector(){return {getBoundingClientRect(){return {height:20};}}}},
+  });
+  global.document = {getElementById(id){
+    if (!elements.has(id)) elements.set(id, element());
+    return elements.get(id);
+  }, createElement:element};
+  global.window = {SnackupAgent:{setState(){}, selectStage(){}}};
+  try {
+    for (const caseKey of ['failure', 'success']) {
+      const bundle = fixture(caseKey === 'failure');
+      const checks = validateEvidence(bundle, caseKey);
+      const state = projectState(bundle.state, 0).state;
+      assert.equal(state.conclusion, null);
+      renderFrame({state, selected:0, caption:'API evidence', elapsed:0,
+        duration:69, bundle, checks, caseKey,
+        gateProof:qualityGateProof(state, bundle.sonar, checks.gateIndexes)});
+      assert.equal(elements.get('evidenceCase').value, caseKey);
+    }
+    assert.equal(window.SNACKUP_EVIDENCE, undefined);
+    assert.equal(window.SNACKUP_EVIDENCE_FAILURE, undefined);
+  } finally {
+    delete global.document;
+    delete global.window;
+  }
 });

@@ -203,6 +203,39 @@ function scene(time, bundles) {
   return {key:'success', elapsed:Infinity, focus:'artifact', caption:'Evidencia final: CI aprobado + aviso de fallo entregado | Repositorio y ejecuciones verificables'};
 }
 
+// The UI may load evidence through its API instead of bundled globals.
+// Every frame carries the chosen case explicitly, including running frames
+// whose conclusion is deliberately hidden until the run completes.
+function renderFrame({state, selected, caption, elapsed, duration, bundle, checks, gateProof, caseKey}) {
+  window.SnackupAgent.setState(state); window.SnackupAgent.selectStage(selected);
+  document.getElementById('video-caption').textContent = caption;
+  document.getElementById('evidenceCase').value = caseKey;
+  document.getElementById('modeDescription').textContent = `Reproducción acelerada · registrada ${new Date(state.started_at || state.stages.find(s => s.started_at)?.started_at).toLocaleString('es-MX')}`;
+  document.getElementById('elapsedLabel').textContent = `${Math.round(elapsed)} s de ${Math.round(duration)} s registrados · se usan marcas de tiempo originales`;
+  const proof = document.getElementById('ci2-proof'); proof.replaceChildren();
+  const add = (label, value, passed = false) => {const line = document.createElement('div'); line.textContent = `${label}: ${value}`; if (passed) line.className = 'verified'; proof.append(line);};
+  const title = document.createElement('strong'); title.textContent = 'Evidencia de la segunda parte'; proof.append(title);
+  const scanDone = checks.scanIndexes.some(index => state.stages[index].status === 'success');
+  const notifyDone = checks.notificationIndexes.some(index => state.stages[index].status === 'success');
+  add('SonarQube', scanDone ? 'Análisis ejecutado' : 'Pendiente / en curso', scanDone);
+  if (scanDone && bundle.sonar.analysis_id) add('Análisis', bundle.sonar.analysis_id);
+  add('Quality Gate', gateProof.value, gateProof.passed);
+  if (notifyDone && bundle.notification.status === 'DELIVERED') {
+    add('Aviso', `DELIVERED · ${bundle.notification.provider} · HTTP ${bundle.notification.http_status}`, true);
+    if (bundle.notification.message_id) add('Mensaje', bundle.notification.message_id);
+    add('Alcance', 'Aceptación del servidor; no lectura humana');
+  } else add('Aviso por fallo', state.conclusion === 'success' ? 'No aplica: ejecución aprobada' : 'No entregado todavía');
+  const list = document.getElementById('stageList'), footer = list.parentElement.querySelector('.panel-footer');
+  const available = document.getElementById('video-caption').getBoundingClientRect().top - list.getBoundingClientRect().top - footer.getBoundingClientRect().height - 12;
+  const rowHeight = Math.max(36, Math.min(48, Math.floor((available - 14) / state.stages.length) - 1));
+  list.style.height = `${Math.min(available, state.stages.length * (rowHeight + 1) + 14)}px`;
+  list.style.setProperty('--ci-stage-row-height', `${rowHeight}px`);
+  const activeRow = list.children[selected];
+  if (activeRow) list.scrollTop = Math.max(0, activeRow.offsetTop - list.offsetTop - list.clientHeight / 2 + activeRow.clientHeight / 2);
+  document.getElementById('logPanel').scrollTop = currentFocusBottom(state.stages[selected]);
+  function currentFocusBottom(stage) {return /notif|sonar|quality[ _-]*gate/i.test([stage.id, stage.name].join(' ')) ? document.getElementById('logPanel').scrollHeight : 0;}
+}
+
 async function record(args, bundles, checks) {
   // Require optional authoring dependencies only after the authentic-evidence guard.
   const { chromium } = require('playwright');
@@ -253,35 +286,7 @@ async function record(args, bundles, checks) {
       else if (current.focus === 'artifact') selected = projection.state.stages.findIndex(stage => /artifact|artefact|empaqueta|upload/i.test(textOf(stage)) && stage.status === 'success');
       if (selected === undefined || selected < 0) selected = projection.state.stages.findIndex(stage => stage.status === 'failure');
       if (selected < 0) selected = Math.max(0, projection.state.stages.length - 1);
-      await page.evaluate(({state, selected, caption, elapsed, duration, bundle, checks, gateProof}) => {
-        window.SnackupAgent.setState(state); window.SnackupAgent.selectStage(selected);
-        document.getElementById('video-caption').textContent = caption;
-        document.getElementById('evidenceCase').value = state.conclusion === 'success' || state.run_id === window.SNACKUP_EVIDENCE.run_id ? 'success' : 'failure';
-        document.getElementById('modeDescription').textContent = `Reproducción acelerada · registrada ${new Date(state.started_at || state.stages.find(s => s.started_at)?.started_at).toLocaleString('es-MX')}`;
-        document.getElementById('elapsedLabel').textContent = `${Math.round(elapsed)} s de ${Math.round(duration)} s registrados · se usan marcas de tiempo originales`;
-        const proof = document.getElementById('ci2-proof'); proof.replaceChildren();
-        const add = (label, value, passed = false) => {const line = document.createElement('div'); line.textContent = `${label}: ${value}`; if (passed) line.className = 'verified'; proof.append(line);};
-        const title = document.createElement('strong'); title.textContent = 'Evidencia de la segunda parte'; proof.append(title);
-        const scanDone = checks.scanIndexes.some(index => state.stages[index].status === 'success');
-        const notifyDone = checks.notificationIndexes.some(index => state.stages[index].status === 'success');
-        add('SonarQube', scanDone ? 'Análisis ejecutado' : 'Pendiente / en curso', scanDone);
-        if (scanDone && bundle.sonar.analysis_id) add('Análisis', bundle.sonar.analysis_id);
-        add('Quality Gate', gateProof.value, gateProof.passed);
-        if (notifyDone && bundle.notification.status === 'DELIVERED') {
-          add('Aviso', `DELIVERED · ${bundle.notification.provider} · HTTP ${bundle.notification.http_status}`, true);
-          if (bundle.notification.message_id) add('Mensaje', bundle.notification.message_id);
-          add('Alcance', 'Aceptación del servidor; no lectura humana');
-        } else add('Aviso por fallo', state.conclusion === 'success' ? 'No aplica: ejecución aprobada' : 'No entregado todavía');
-        const list = document.getElementById('stageList'), footer = list.parentElement.querySelector('.panel-footer');
-        const available = document.getElementById('video-caption').getBoundingClientRect().top - list.getBoundingClientRect().top - footer.getBoundingClientRect().height - 12;
-        const rowHeight = Math.max(36, Math.min(48, Math.floor((available - 14) / state.stages.length) - 1));
-        list.style.height = `${Math.min(available, state.stages.length * (rowHeight + 1) + 14)}px`;
-        list.style.setProperty('--ci-stage-row-height', `${rowHeight}px`);
-        const activeRow = list.children[selected];
-        if (activeRow) list.scrollTop = Math.max(0, activeRow.offsetTop - list.offsetTop - list.clientHeight / 2 + activeRow.clientHeight / 2);
-        document.getElementById('logPanel').scrollTop = currentFocusBottom(state.stages[selected]);
-        function currentFocusBottom(stage) {return /notif|sonar|quality[ _-]*gate/i.test([stage.id, stage.name].join(' ')) ? document.getElementById('logPanel').scrollHeight : 0;}
-      }, {state:projection.state, selected, caption:current.caption, elapsed:projection.elapsed, duration:projection.times.duration, bundle, checks:checks[current.key], gateProof:qualityGateProof(projection.state, bundle.sonar, checks[current.key].gateIndexes)});
+      await page.evaluate(renderFrame, {state:projection.state, selected, caption:current.caption, elapsed:projection.elapsed, duration:projection.times.duration, bundle, checks:checks[current.key], gateProof:qualityGateProof(projection.state, bundle.sonar, checks[current.key].gateIndexes), caseKey:current.key});
       if (activeKey !== current.key) {
         activeKey = current.key;
         sizes[current.key] = await page.evaluate(() => {const list = document.getElementById('stageList'); return {height:list.clientHeight, content:list.scrollHeight, rows:list.children.length};});
@@ -320,5 +325,5 @@ async function main(argv = process.argv.slice(2)) {
   if (args.validateOnly) {console.log('Evidencia válida: SonarQube ejecutado, Quality Gate OK y aviso real DELIVERED. No se generó un video.'); return;}
   await record(args, bundles, checks);
 }
-module.exports = {argumentsFrom, indexes, validateEvidence, timeline, projectState, redact, scene, qualityGateProof, main};
+module.exports = {argumentsFrom, indexes, validateEvidence, timeline, projectState, redact, scene, qualityGateProof, renderFrame, main};
 if (require.main === module) main().catch(error => {console.error(`No se generó evidencia final: ${error.message}`); process.exitCode = 1;});

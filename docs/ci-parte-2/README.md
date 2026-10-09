@@ -8,7 +8,7 @@ El repositorio de esta entrega es [JCoorp/SnackUP-core](https://github.com/JCoor
 
 [La ejecución real fallida 37869730221, intento 2](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221) había aprobado 59 pruebas Flutter y la compilación. SonarQube rechazó su Gate por cobertura nueva de 45.0% frente al 80% requerido: se bloqueó el artefacto y **Discord confirmó el mensaje con HTTP 200 e ID público**. Este fallo real y el nuevo CI aprobado son las fuentes del video. Los secretos ya están verificados y el marcador de fallo controlado permanece desactivado.
 
-[Las 50 pruebas de implementación aprobaron en GitHub Actions de JCoorp](https://github.com/JCoorp/SnackUP-core/actions/runs/37869702571). La nueva regresión del grabador eleva la suite a **51 pruebas**, aprobadas localmente y pendientes de su nueva ejecución remota. La generación del video está en curso; `ESTADO_VERIFICADO.json` registra los resultados observados.
+[Las 50 pruebas de implementación aprobaron en GitHub Actions de JCoorp](https://github.com/JCoorp/SnackUP-core/actions/runs/37869702571). La nueva regresión del grabador eleva la suite a **52 pruebas**, aprobadas localmente y pendientes de su nueva ejecución remota. La generación del video está en curso; `ESTADO_VERIFICADO.json` registra los resultados observados.
 
 ## Pipeline y alcance de la actividad
 

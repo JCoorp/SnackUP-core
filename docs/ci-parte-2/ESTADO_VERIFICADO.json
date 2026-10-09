@@ -23,10 +23,10 @@
     "transferred_application_validation": "59_TESTS_PASSED_IN_TARGET_REPOSITORY_RUN_37869730221_ATTEMPT_2"
   },
   "implementation_checks_in_target_repository": {
-    "run_id": 37869702571,
-    "commit": "d9aaa8211954b101565d60c2088f8943d94f7f11",
+    "run_id": 37872273534,
+    "commit": "9d422422f766d4d6f476bd9e5a70087bdc1e544d",
     "conclusion": "success",
-    "tests": 50
+    "tests": 51
   },
   "successful_pipeline": {
     "run_id": 37871800187,
@@ -66,8 +66,14 @@
   "submission_status": "SUCCESSFUL_CI_AND_REAL_FAILURE_NOTIFICATION_VERIFIED_PENDING_VIDEO",
   "note": "188 application tests, Web build, real Sonar analysis and Gate OK verified in run 37871800187 attempt 1. New-code coverage 86.5%, required 80%. A prior real Gate rejection and confirmed Discord message are retained as the failure case. Video generation is pending; no controlled failure is enabled.",
   "local_implementation_checks_after_adaptation": {
-    "tests": 51,
+    "tests": 52,
     "conclusion": "success",
     "scope": "Local implementation tests with mocked HTTP responses; not a target-repository CI run or real Sonar/webhook evidence."
+  },
+  "video_generation": {
+    "source_success_run": 37871800187,
+    "source_failure_run": 37869730221,
+    "recording_revision": 2,
+    "status": "REQUESTED"
   }
 }
