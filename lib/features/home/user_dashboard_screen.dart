@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'user_home_screen.dart';
@@ -8,7 +9,9 @@ import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
 class UserDashboardScreen extends StatefulWidget {
-  const UserDashboardScreen({super.key});
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  const UserDashboardScreen({super.key, this.firestore, this.auth});
 
   @override
   State<UserDashboardScreen> createState() => _UserDashboardScreenState();
@@ -18,11 +21,11 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    UserHomeScreen(), // 0: Inicio
-    SearchScreen(), // 1: Buscar
-    CartScreen(), // 2: Carrito
-    ProfileOrdersScreen(), // 3: Pedidos
+  late final List<Widget> _widgetOptions = <Widget>[
+    UserHomeScreen(firestore: widget.firestore, auth: widget.auth), // 0: Inicio
+    SearchScreen(firestore: widget.firestore, auth: widget.auth), // 1: Buscar
+    CartScreen(firestore: widget.firestore, auth: widget.auth), // 2: Carrito
+    ProfileOrdersScreen(firestore: widget.firestore, auth: widget.auth), // 3: Pedidos
   ];
 
   final List<String> _appBarTitles = [
@@ -272,7 +275,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             onPressed: () async {
               Navigator.of(ctx).pop();
               try {
-                await FirebaseAuth.instance.signOut();
+                await (widget.auth ?? FirebaseAuth.instance).signOut();
               } catch (_) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(

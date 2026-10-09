@@ -6,12 +6,14 @@ import 'package:snackup/theme/app_text.dart';
 
 class OrderListTab extends StatefulWidget {
   final String businessId;
+  final FirebaseFirestore? firestore;
   final String status;
   final String orderType;
 
   const OrderListTab({
     super.key,
     required this.businessId,
+    this.firestore,
     required this.status,
     required this.orderType,
   });
@@ -59,7 +61,7 @@ class _OrderListTabState extends State<OrderListTab> {
   Widget build(BuildContext context) {
     // Query only the ownership field; sort/filter locally so no composite
     // index is required and overdue scheduled orders never disappear.
-    final ordersStream = FirebaseFirestore.instance
+    final ordersStream = (widget.firestore ?? FirebaseFirestore.instance)
         .collection('orders')
         .where('businessId', isEqualTo: widget.businessId)
         .snapshots();
@@ -222,6 +224,7 @@ class _OrderListTabState extends State<OrderListTab> {
                     builder: (context) => OrderDetailScreen(
                       orderId: doc.id,
                       businessId: widget.businessId,
+                      firestore: widget.firestore,
                     ),
                   ),
                 );

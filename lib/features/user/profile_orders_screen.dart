@@ -11,7 +11,9 @@ import 'order_checkout.dart';
 import 'student_order_repository.dart';
 
 class ProfileOrdersScreen extends StatefulWidget {
-  const ProfileOrdersScreen({super.key});
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  const ProfileOrdersScreen({super.key, this.firestore, this.auth});
 
   @override
   State<ProfileOrdersScreen> createState() => _ProfileOrdersScreenState();
@@ -19,10 +21,13 @@ class ProfileOrdersScreen extends StatefulWidget {
 
 class _ProfileOrdersScreenState extends State<ProfileOrdersScreen>
     with SingleTickerProviderStateMixin {
+  FirebaseFirestore get _firestore => widget.firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth get _auth => widget.auth ?? FirebaseAuth.instance;
+
   late TabController _tabController;
   late Stream<QuerySnapshot> _allOrdersStream;
   late Stream<QuerySnapshot> _favoritesStream;
-  final String? userId = FirebaseAuth.instance.currentUser?.uid;
+  late final String? userId = _auth.currentUser?.uid;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _reviewsSubscription;
   final Set<String> _reviewedOrderIds = {};
   bool _reviewsLoading = true;
@@ -40,7 +45,7 @@ class _ProfileOrdersScreenState extends State<ProfileOrdersScreen>
       _favoritesStream = const Stream.empty();
       return;
     }
-    _reviewsSubscription = FirebaseFirestore.instance
+    _reviewsSubscription = _firestore
         .collection('reviews')
         .where('userId', isEqualTo: userId)
         .snapshots()
@@ -68,12 +73,12 @@ class _ProfileOrdersScreenState extends State<ProfileOrdersScreen>
           },
         );
 
-    _allOrdersStream = FirebaseFirestore.instance
+    _allOrdersStream = _firestore
         .collection('orders')
         .where('userId', isEqualTo: userId)
         .snapshots();
 
-    _favoritesStream = FirebaseFirestore.instance
+    _favoritesStream = _firestore
         .collection('users')
         .doc(userId)
         .collection('favorites')
@@ -436,6 +441,8 @@ class _ProfileOrdersScreenState extends State<ProfileOrdersScreen>
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (ctx) => ShowQrScreen(
+                          firestore: _firestore,
+                          auth: _auth,
                           orderId: doc.id,
                           qrData: pickupQrData(doc.id, order),
                         ),
@@ -623,7 +630,7 @@ class _ProfileOrdersScreenState extends State<ProfileOrdersScreen>
     if (_isOpeningReview || _reviewedOrderIds.contains(orderId)) return;
     setState(() => _isOpeningReview = true);
     try {
-      final business = await FirebaseFirestore.instance
+      final business = await _firestore
           .collection('businesses')
           .doc(businessId)
           .get();
@@ -631,6 +638,8 @@ class _ProfileOrdersScreenState extends State<ProfileOrdersScreen>
       final submitted = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => RateOrderScreen(
+            firestore: _firestore,
+            auth: _auth,
             orderId: orderId,
             businessId: businessId,
             businessName: business.data()?['name'] is String
@@ -830,7 +839,7 @@ class _ProfileOrdersScreenState extends State<ProfileOrdersScreen>
           validNotes(item['notes']),
         );
       }).toList();
-      await StudentOrderRepository().addProducts(requests);
+      await StudentOrderRepository(firestore: _firestore, auth: _auth).addProducts(requests);
       if (context.mounted) {
         _showOperationMessage(
           context,
@@ -855,7 +864,7 @@ class _ProfileOrdersScreenState extends State<ProfileOrdersScreen>
     setState(() => _cartBusy = true);
     try {
       final favorite = doc.data() as Map<String, dynamic>;
-      await StudentOrderRepository().addProducts([
+      await StudentOrderRepository(firestore: _firestore, auth: _auth).addProducts([
         CartProductRequest(
           validProductId(favorite['productId']),
           1,

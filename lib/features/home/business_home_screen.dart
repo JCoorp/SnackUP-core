@@ -11,7 +11,12 @@ import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
 class BusinessHomeScreen extends StatefulWidget {
-  const BusinessHomeScreen({super.key});
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  final Future<void> Function()? playNewOrderSound;
+  const BusinessHomeScreen({
+    super.key, this.firestore, this.auth, this.playNewOrderSound,
+  });
 
   @override
   State<BusinessHomeScreen> createState() => _BusinessHomeScreenState();
@@ -22,8 +27,9 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
   String? _fetchedBusinessId;
   StreamSubscription? _newOrderSubscription;
   Set<String>? _previousPendingIds;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  AudioPlayer? _audioPlayer;
   bool _alertShownForThisBatch = false;
+  Timer? _alertResetTimer;
   int _pendingOrdersCount = 0;
   bool _businessLoadFailed = false;
   bool _updatingOpenStatus = false;
@@ -38,9 +44,9 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
   Future<void> _fetchBusinessIdAndListen() async {
     if (mounted) setState(() => _businessLoadFailed = false);
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = (widget.auth ?? FirebaseAuth.instance).currentUser;
       if (user == null) throw StateError('Sesión terminada');
-      final query = await FirebaseFirestore.instance
+      final query = await (widget.firestore ?? FirebaseFirestore.instance)
           .collection('businesses')
           .where('ownerId', isEqualTo: user.uid)
           .limit(1)
@@ -59,7 +65,7 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
     if (_updatingOpenStatus || _fetchedBusinessId == null) return;
     setState(() => _updatingOpenStatus = true);
     try {
-      await FirebaseFirestore.instance
+      await (widget.firestore ?? FirebaseFirestore.instance)
           .collection('businesses')
           .doc(_fetchedBusinessId!)
           .update({'isOpen': isOpen});
@@ -91,7 +97,13 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
 
   Future<void> _playNewOrderSound() async {
     try {
-      await _audioPlayer.play(AssetSource('sounds/notification_bell.mp3'));
+      if (widget.playNewOrderSound != null) {
+        await widget.playNewOrderSound!();
+      } else {
+        await (_audioPlayer ??= AudioPlayer()).play(
+          AssetSource('sounds/notification_bell.mp3'),
+        );
+      }
     } catch (_) {
       // Browsers can block audio until a user gesture. The visual alert remains.
     }
@@ -100,7 +112,7 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
   void _listenForNewOrders(String businessId) {
     _newOrderSubscription?.cancel();
 
-    final query = FirebaseFirestore.instance
+    final query = (widget.firestore ?? FirebaseFirestore.instance)
         .collection('orders')
         .where('businessId', isEqualTo: businessId);
 
@@ -126,7 +138,8 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
             _showNewOrderDialog(context, currentOrderCount);
           }
 
-          Future.delayed(const Duration(seconds: 10), () {
+          _alertResetTimer?.cancel();
+          _alertResetTimer = Timer(const Duration(seconds: 10), () {
             if (mounted) {
               _alertShownForThisBatch = false;
             }
@@ -269,7 +282,8 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
   @override
   void dispose() {
     _newOrderSubscription?.cancel();
-    _audioPlayer.dispose();
+    _alertResetTimer?.cancel();
+    _audioPlayer?.dispose();
     super.dispose();
   }
 
@@ -281,7 +295,7 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
     }
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
+      stream: (widget.firestore ?? FirebaseFirestore.instance)
           .collection('businesses')
           .doc(_fetchedBusinessId!)
           .snapshots(),
@@ -304,9 +318,9 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
         final String businessName = businessData['name'] ?? 'Mi Negocio';
 
         final List<Widget> pages = [
-          ViewOrdersScreen(businessId: _fetchedBusinessId!),
-          ManageMenuScreen(businessId: _fetchedBusinessId!),
-          StatisticsScreen(businessId: _fetchedBusinessId!),
+          ViewOrdersScreen(businessId: _fetchedBusinessId!, firestore: widget.firestore),
+          ManageMenuScreen(businessId: _fetchedBusinessId!, firestore: widget.firestore),
+          StatisticsScreen(businessId: _fetchedBusinessId!, firestore: widget.firestore),
         ];
 
         return Scaffold(
@@ -416,7 +430,7 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
                 ),
                 onPressed: () {
                   Navigator.of(ctx).pop();
-                  FirebaseAuth.instance.signOut();
+                  (widget.auth ?? FirebaseAuth.instance).signOut();
                 },
                 child: Text(
                   'Cerrar Sesión',
@@ -542,7 +556,7 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () => FirebaseAuth.instance.signOut(),
+                onPressed: () => (widget.auth ?? FirebaseAuth.instance).signOut(),
                 child: const Text('Cerrar sesión'),
               ),
             ],

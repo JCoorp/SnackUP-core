@@ -7,7 +7,11 @@ import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
 class UserHomeScreen extends StatelessWidget {
-  const UserHomeScreen({super.key});
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  FirebaseFirestore get _firestore => firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth get _auth => auth ?? FirebaseAuth.instance;
+  const UserHomeScreen({super.key, this.firestore, this.auth});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +40,7 @@ class UserHomeScreen extends StatelessWidget {
   }
 
   Widget _buildWelcomeHeader() {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     String displayName =
         user?.displayName ?? user?.email?.split('@').first ?? 'Estudiante';
 
@@ -163,7 +167,7 @@ class UserHomeScreen extends StatelessWidget {
   }
 
   Widget _buildPromotionsCarousel() {
-    final Stream<QuerySnapshot> promotionsStream = FirebaseFirestore.instance
+    final Stream<QuerySnapshot> promotionsStream = _firestore
         .collection('products')
         .where('isFeatured', isEqualTo: true)
         .where('isAvailable', isEqualTo: true)
@@ -208,6 +212,8 @@ class UserHomeScreen extends StatelessWidget {
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => ProductDetailScreen(
+                      firestore: _firestore,
+                      auth: _auth,
                       productId: docs[index].id,
                       product: promo,
                     ),
@@ -401,7 +407,7 @@ class UserHomeScreen extends StatelessWidget {
   }
 
   Widget _buildBusinessesList() {
-    final Stream<QuerySnapshot> businessesStream = FirebaseFirestore.instance
+    final Stream<QuerySnapshot> businessesStream = _firestore
         .collection('businesses')
         .where('isOpen', isEqualTo: true)
         .snapshots();
@@ -434,6 +440,8 @@ class UserHomeScreen extends StatelessWidget {
             Map<String, dynamic> data =
                 document.data()! as Map<String, dynamic>;
             return BusinessCard(
+              firestore: _firestore,
+              auth: _auth,
               businessId: document.id,
               name: data['name'] ?? 'Cafetería',
               imageUrl: data['imageUrl'] ?? '',
@@ -568,6 +576,8 @@ class UserHomeScreen extends StatelessWidget {
 
 // Tarjeta de Negocio (BusinessCard)
 class BusinessCard extends StatelessWidget {
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
   final String businessId;
   final String name;
   final String imageUrl;
@@ -575,6 +585,8 @@ class BusinessCard extends StatelessWidget {
 
   const BusinessCard({
     super.key,
+    this.firestore,
+    this.auth,
     required this.businessId,
     required this.name,
     required this.imageUrl,
@@ -594,7 +606,7 @@ class BusinessCard extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) =>
-                  MenuScreen(businessId: businessId, businessName: name),
+                  MenuScreen(businessId: businessId, businessName: name, firestore: firestore, auth: auth),
             ),
           );
         },

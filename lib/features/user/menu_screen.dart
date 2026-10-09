@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'product_detail_screen.dart';
@@ -5,18 +6,24 @@ import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
 class MenuScreen extends StatelessWidget {
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  FirebaseFirestore get _firestore => firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth get _auth => auth ?? FirebaseAuth.instance;
   final String businessId;
   final String businessName;
 
   const MenuScreen({
     super.key,
+    this.firestore,
+    this.auth,
     required this.businessId,
     required this.businessName,
   });
 
   @override
   Widget build(BuildContext context) {
-    final Stream<QuerySnapshot> productsStream = FirebaseFirestore.instance
+    final Stream<QuerySnapshot> productsStream = _firestore
         .collection('products')
         .where('businessId', isEqualTo: businessId)
         .snapshots();
@@ -194,6 +201,8 @@ class MenuScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => ProductDetailScreen(
+                      firestore: _firestore,
+                      auth: _auth,
                         product: product,
                         productId: doc.id,
                       ),

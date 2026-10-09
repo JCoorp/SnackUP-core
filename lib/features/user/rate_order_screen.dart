@@ -7,12 +7,16 @@ import 'package:snackup/theme/app_text.dart';
 import 'review_submission.dart';
 
 class RateOrderScreen extends StatefulWidget {
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
   final String orderId;
   final String businessId;
   final String businessName;
 
   const RateOrderScreen({
     super.key,
+    this.firestore,
+    this.auth,
     required this.orderId,
     required this.businessId,
     required this.businessName,
@@ -23,6 +27,9 @@ class RateOrderScreen extends StatefulWidget {
 }
 
 class _RateOrderScreenState extends State<RateOrderScreen> {
+  FirebaseFirestore get _firestore => widget.firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth get _auth => widget.auth ?? FirebaseAuth.instance;
+
   final _formKey = GlobalKey<FormState>();
   final _commentController = TextEditingController();
   final _careerController = TextEditingController();
@@ -42,14 +49,14 @@ class _RateOrderScreenState extends State<RateOrderScreen> {
   }
 
   Future<void> _prefillAcademicProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     if (user == null) return;
     try {
-      final snapshot = await FirebaseFirestore.instance
+      final snapshot = await _firestore
           .collection('users')
           .doc(user.uid)
           .get();
-      if (!mounted || FirebaseAuth.instance.currentUser?.uid != user.uid) {
+      if (!mounted || _auth.currentUser?.uid != user.uid) {
         return;
       }
       final data = snapshot.data();
@@ -84,7 +91,7 @@ class _RateOrderScreenState extends State<RateOrderScreen> {
 
   Future<void> _submitReview() async {
     if (_isLoading || !_formKey.currentState!.validate()) return;
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     if (user == null) {
       _showMessage('Inicia sesión para enviar tu reseña.');
       return;
@@ -107,7 +114,7 @@ class _RateOrderScreenState extends State<RateOrderScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final firestore = FirebaseFirestore.instance;
+      final firestore = _firestore;
       // Older versions used random review IDs. Check the student's own reviews
       // before the transaction; a failed lookup must never bypass this guard.
       final previousReviews = await firestore

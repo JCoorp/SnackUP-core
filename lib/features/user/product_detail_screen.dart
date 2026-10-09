@@ -7,11 +7,15 @@ import 'student_order_repository.dart';
 import 'order_checkout.dart';
 
 class ProductDetailScreen extends StatefulWidget {
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
   final Map<String, dynamic> product;
   final String productId;
 
   const ProductDetailScreen({
     super.key,
+    this.firestore,
+    this.auth,
     required this.product,
     required this.productId,
   });
@@ -21,6 +25,9 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  FirebaseFirestore get _firestore => widget.firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth get _auth => widget.auth ?? FirebaseAuth.instance;
+
   int _quantity = 1;
   final _notesController = TextEditingController();
   bool _isLoading = false;
@@ -30,9 +37,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = _auth.currentUser?.uid;
     if (userId != null) {
-      _favoriteRef = FirebaseFirestore.instance
+      _favoriteRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('favorites')
@@ -41,7 +48,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _toggleFavorite() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = _auth.currentUser?.uid;
     if (userId == null || _favoriteRef == null) {
       _showError('Inicia sesión para guardar favoritos.');
       return;
@@ -93,7 +100,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (_isLoading) return;
     setState(() => _isLoading = true);
     try {
-      await StudentOrderRepository().addProducts([
+      await StudentOrderRepository(firestore: _firestore, auth: _auth).addProducts([
         CartProductRequest(widget.productId, _quantity, _notesController.text),
       ]);
       if (!mounted) return;

@@ -7,6 +7,7 @@ import 'utils/reload_stub.dart'
 
 // Tus imports originales
 import 'features/auth/auth_gate.dart';
+import 'features/auth/auth_repository.dart';
 import 'firebase_options.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_text.dart';
@@ -29,7 +30,8 @@ Future<void> _initializeFirebase() async {
 }
 
 class SnackUpApp extends StatelessWidget {
-  const SnackUpApp({super.key});
+  const SnackUpApp({super.key, this.authRepository});
+  final SnackAuthRepository? authRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -254,8 +256,7 @@ class SnackUpApp extends StatelessWidget {
         ),
       ),
 
-      home:
-          const AuthWrapper(), // Asegúrate de que AuthWrapper esté en auth_gate.dart
+      home: AuthWrapper(repository: authRepository),
     );
   }
 }

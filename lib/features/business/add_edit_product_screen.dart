@@ -10,11 +10,15 @@ import 'package:snackup/theme/app_text.dart';
 
 class AddEditProductScreen extends StatefulWidget {
   final String businessId;
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
   final String? productId;
 
   const AddEditProductScreen({
     super.key,
     required this.businessId,
+    this.firestore,
+    this.auth,
     this.productId,
   });
 
@@ -57,7 +61,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       _loadFailed = false;
     });
     try {
-      final doc = await FirebaseFirestore.instance
+      final doc = await (widget.firestore ?? FirebaseFirestore.instance)
           .collection('products')
           .doc(widget.productId)
           .get();
@@ -204,7 +208,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         'name_searchable': _nameController.text.trim().toLowerCase(),
       };
 
-      final firestore = FirebaseFirestore.instance;
+      final firestore = (widget.firestore ?? FirebaseFirestore.instance);
       final reference = firestore.collection('products').doc(widget.productId);
       await firestore.runTransaction((transaction) async {
         if (_isEditing) {
@@ -239,8 +243,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   Future<void> _verifyOwner() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    final business = await FirebaseFirestore.instance
+    final uid = (widget.auth ?? FirebaseAuth.instance).currentUser?.uid;
+    final business = await (widget.firestore ?? FirebaseFirestore.instance)
         .collection('businesses')
         .doc(widget.businessId)
         .get();
@@ -274,7 +278,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     setState(() => _isLoading = true);
     try {
       await _verifyOwner();
-      final firestore = FirebaseFirestore.instance;
+      final firestore = (widget.firestore ?? FirebaseFirestore.instance);
       final reference = firestore.collection('products').doc(widget.productId);
       await firestore.runTransaction((transaction) async {
         final product = await transaction.get(reference);

@@ -9,10 +9,14 @@ import 'package:snackup/theme/app_text.dart';
 class OrderDetailScreen extends StatefulWidget {
   final String orderId;
   final String businessId;
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
   const OrderDetailScreen({
     super.key,
     required this.orderId,
     required this.businessId,
+    this.firestore,
+    this.auth,
   });
 
   @override
@@ -22,7 +26,7 @@ class OrderDetailScreen extends StatefulWidget {
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   bool _updating = false;
   DocumentReference<Map<String, dynamic>> get _orderRef =>
-      FirebaseFirestore.instance.collection('orders').doc(widget.orderId);
+      (widget.firestore ?? FirebaseFirestore.instance).collection('orders').doc(widget.orderId);
 
   void _showMessage(String message, {bool error = false}) {
     if (!mounted) return;
@@ -42,8 +46,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (_updating) return;
     setState(() => _updating = true);
     try {
-      final firestore = FirebaseFirestore.instance;
-      final uid = FirebaseAuth.instance.currentUser?.uid;
+      final firestore = (widget.firestore ?? FirebaseFirestore.instance);
+      final uid = (widget.auth ?? FirebaseAuth.instance).currentUser?.uid;
       if (uid == null) throw StateError('Inicia sesión de nuevo.');
       await firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(_orderRef);

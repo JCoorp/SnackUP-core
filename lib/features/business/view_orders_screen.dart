@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'order_list_tab.dart';
 import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
 class ViewOrdersScreen extends StatefulWidget {
   final String businessId;
-  const ViewOrdersScreen({super.key, required this.businessId});
+  final FirebaseFirestore? firestore;
+  const ViewOrdersScreen({super.key, required this.businessId, this.firestore});
 
   @override
   State<ViewOrdersScreen> createState() => _ViewOrdersScreenState();
@@ -241,6 +243,7 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
         Expanded(
           child: OrderListTab(
             businessId: widget.businessId,
+            firestore: widget.firestore,
             status: status,
             orderType: orderType,
           ),

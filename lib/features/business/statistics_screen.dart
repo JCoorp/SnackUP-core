@@ -7,7 +7,8 @@ import 'package:snackup/theme/app_text.dart';
 
 class StatisticsScreen extends StatefulWidget {
   final String businessId;
-  const StatisticsScreen({super.key, required this.businessId});
+  final FirebaseFirestore? firestore;
+  const StatisticsScreen({super.key, required this.businessId, this.firestore});
 
   @override
   State<StatisticsScreen> createState() => _StatisticsScreenState();
@@ -19,7 +20,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   void initState() {
     super.initState();
-    _completedOrdersStream = FirebaseFirestore.instance
+    _completedOrdersStream = (widget.firestore ?? FirebaseFirestore.instance)
         .collection('orders')
         .where('businessId', isEqualTo: widget.businessId)
         .snapshots();

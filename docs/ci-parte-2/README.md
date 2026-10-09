@@ -4,9 +4,9 @@ La segunda parte de la actividad pide **el enlace del repositorio y un video cor
 
 El repositorio de esta entrega es [JCoorp/SnackUP-core](https://github.com/JCoorp/SnackUP-core), en la rama [feature/ci-sonar-notifications](https://github.com/JCoorp/SnackUP-core/tree/feature/ci-sonar-notifications). Los cambios se revisan mediante un PR hacia `main`; preparar la evidencia no requiere integrar la rama.
 
-**Estado actual: preparado para ejecutarse en JCoorp, con configuración y evidencia pendientes.** Los secretos configurados en otro repositorio no se transfieren a este. Hay que guardar o comprobar `SONAR_TOKEN` y `CI_FAILURE_WEBHOOK_URL` en JCoorp y obtener dos ejecuciones reales antes de declarar la entrega completa.
+**Estado verificado:** los dos secretos están configurados. [La ejecución real 37869730221, intento 2](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221) aprobó 59 pruebas Flutter y la compilación, ejecutó SonarQube y confirmó el mensaje de Discord con HTTP 200 e ID público. El Gate devolvió `ERROR` porque la cobertura del código nuevo fue 45.0%, inferior al 80.0% requerido. Se bloqueó correctamente el artefacto. Las calificaciones de seguridad, fiabilidad y mantenibilidad fueron A, la duplicación fue 1.9% y la revisión de hotspots 100%. Se amplían las pruebas para obtener un CI aprobado y generar el video; todavía no se presenta esta ejecución fallida como entrega final.
 
-La suite de controles y grabador contiene 50 pruebas y aprobó localmente después de esta adaptación. En el trabajo anterior se ejecutaron 59 pruebas de la aplicación Flutter. Este último resultado es histórico: los cambios y pruebas se trasladan al proyecto de esta entrega. La comprobación local y el número anterior no acreditan una ejecución remota de JCoorp. Los resultados nuevos se registrarán en `ESTADO_VERIFICADO.json` con sus propios enlaces y commits.
+[Las 50 pruebas de implementación aprobaron en GitHub Actions de JCoorp](https://github.com/JCoorp/SnackUP-core/actions/runs/37869702571). La primera ejecución real del proyecto aprobó 59 pruebas Flutter; las pruebas adicionales de cobertura se validarán en una nueva ejecución. `ESTADO_VERIFICADO.json` distingue resultados observados de trabajo pendiente.
 
 ## Pipeline y alcance de la actividad
 

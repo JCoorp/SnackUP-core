@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,13 +7,18 @@ import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  const SearchScreen({super.key, this.firestore, this.auth});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  FirebaseFirestore get _firestore => widget.firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth get _auth => widget.auth ?? FirebaseAuth.instance;
+
   final _searchController = TextEditingController();
   List<DocumentSnapshot> _results = [];
   bool _isLoading = false;
@@ -45,7 +51,7 @@ class _SearchScreenState extends State<SearchScreen> {
       });
 
       try {
-        final snapshot = await FirebaseFirestore.instance
+        final snapshot = await _firestore
             .collection('products')
             .where('isAvailable', isEqualTo: true)
             .where('name_searchable', isGreaterThanOrEqualTo: query)
@@ -162,10 +168,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         onPressed: () {
                           _searchController.clear();
-                          setState(() {
-                            _results = [];
-                            _hasSearched = false;
-                          });
+                          _onSearchChanged('');
                         },
                       )
                     : null,
@@ -400,6 +403,8 @@ class _SearchScreenState extends State<SearchScreen> {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => ProductDetailScreen(
+                      firestore: _firestore,
+                      auth: _auth,
                       product: product,
                       productId: doc.id,
                     ),

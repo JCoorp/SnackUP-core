@@ -6,11 +6,12 @@ import 'package:snackup/theme/app_text.dart';
 
 class ManageMenuScreen extends StatelessWidget {
   final String businessId;
-  const ManageMenuScreen({super.key, required this.businessId});
+  final FirebaseFirestore? firestore;
+  const ManageMenuScreen({super.key, required this.businessId, this.firestore});
 
   @override
   Widget build(BuildContext context) {
-    final Stream<QuerySnapshot> productsStream = FirebaseFirestore.instance
+    final Stream<QuerySnapshot> productsStream = (firestore ?? FirebaseFirestore.instance)
         .collection('products')
         .where('businessId', isEqualTo: businessId)
         .snapshots();
@@ -64,7 +65,7 @@ class ManageMenuScreen extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) =>
-                  AddEditProductScreen(businessId: businessId),
+                  AddEditProductScreen(businessId: businessId, firestore: firestore),
             ),
           );
         },
@@ -161,7 +162,7 @@ class ManageMenuScreen extends StatelessWidget {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) =>
-                      AddEditProductScreen(businessId: businessId),
+                      AddEditProductScreen(businessId: businessId, firestore: firestore),
                 ),
               );
             },
@@ -310,6 +311,7 @@ class ManageMenuScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (context) => AddEditProductScreen(
                   businessId: product['businessId'],
+                  firestore: firestore,
                   productId: doc.id,
                 ),
               ),

@@ -7,20 +7,24 @@ import 'package:snackup/theme/app_colors.dart';
 import 'order_checkout.dart';
 
 class ShowQrScreen extends StatelessWidget {
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  FirebaseFirestore get _firestore => firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth get _auth => auth ?? FirebaseAuth.instance;
   final String orderId;
   // Kept for callers from older screens. The live, owned order determines the QR.
   final String? qrData;
-  const ShowQrScreen({super.key, required this.orderId, this.qrData});
+  const ShowQrScreen({super.key, required this.orderId, this.qrData, this.firestore, this.auth});
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = _auth.currentUser?.uid;
     return Scaffold(
       appBar: AppBar(title: const Text('Recoger pedido')),
       body: uid == null
           ? const Center(child: Text('Inicia sesión para ver tu pedido.'))
           : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-              stream: FirebaseFirestore.instance
+              stream: _firestore
                   .collection('orders')
                   .doc(orderId)
                   .snapshots(),

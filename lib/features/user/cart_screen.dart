@@ -7,13 +7,18 @@ import 'order_checkout.dart';
 import 'student_order_repository.dart';
 
 class CartScreen extends StatefulWidget {
-  const CartScreen({super.key});
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  const CartScreen({super.key, this.firestore, this.auth});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
 }
 
 class _CartScreenState extends State<CartScreen> {
+  FirebaseFirestore get _firestore => widget.firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth get _auth => widget.auth ?? FirebaseAuth.instance;
+
   String _selectedPaymentMethod = 'Efectivo';
   TimeOfDay? _selectedTime;
   bool _isLoading = false;
@@ -97,7 +102,7 @@ class _CartScreenState extends State<CartScreen> {
     if (_isLoading) return;
     setState(() => _isLoading = true);
     try {
-      final repository = StudentOrderRepository();
+      final repository = StudentOrderRepository(firestore: _firestore, auth: _auth);
       final now = DateTime.now();
       final pickupTime = _selectedTime == null
           ? null
@@ -163,13 +168,13 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = _auth.currentUser?.uid;
 
     if (userId == null) {
       return _buildErrorState('Debes iniciar sesión para ver tu carrito');
     }
 
-    final Stream<QuerySnapshot> cartStream = FirebaseFirestore.instance
+    final Stream<QuerySnapshot> cartStream = _firestore
         .collection('users')
         .doc(userId)
         .collection('cart')

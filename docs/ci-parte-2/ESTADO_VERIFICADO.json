@@ -7,24 +7,26 @@
     "organization": "jcoorp",
     "project_key": "JCoorp_SnackUP-core",
     "host": "https://sonarcloud.io",
-    "analysis_executed_in_target_repository": false,
-    "quality_gate_validated_in_target_repository": false
+    "analysis_executed_in_target_repository": true,
+    "quality_gate_validated_in_target_repository": true,
+    "quality_gate_status": "ERROR",
+    "analysis_id": "5e19b2af-749c-4c99-b070-ef3429b33858"
   },
   "target_repository_configuration": {
-    "SONAR_TOKEN": "PENDING_VERIFICATION_IN_JCOORP_REPOSITORY",
-    "CI_FAILURE_WEBHOOK_URL": "PENDING_VERIFICATION_IN_JCOORP_REPOSITORY",
-    "note": "Secrets configured in another repository are not transferred to this repository."
+    "SONAR_TOKEN": "VERIFIED_BY_REAL_ANALYSIS",
+    "CI_FAILURE_WEBHOOK_URL": "VERIFIED_BY_DISCORD_MESSAGE_ACKNOWLEDGEMENT"
   },
   "historical_checks": {
     "implementation_tests": 50,
     "application_tests": 59,
     "scope": "Previous work only; these counts do not prove execution or approval in JCoorp/SnackUP-core.",
-    "transferred_application_validation": "PENDING_TARGET_REPOSITORY_RUN"
+    "transferred_application_validation": "59_TESTS_PASSED_IN_TARGET_REPOSITORY_RUN_37869730221_ATTEMPT_2"
   },
   "implementation_checks_in_target_repository": {
-    "run_id": null,
-    "commit": null,
-    "conclusion": "PENDING"
+    "run_id": 37869702571,
+    "commit": "d9aaa8211954b101565d60c2088f8943d94f7f11",
+    "conclusion": "success",
+    "tests": 50
   },
   "successful_pipeline": {
     "run_id": null,
@@ -33,15 +35,26 @@
     "validated_application_artifact": false
   },
   "failure_pipeline": {
-    "run_id": null,
-    "commit": null,
+    "run_id": 37869730221,
+    "run_attempt": 2,
+    "commit": "d9aaa8211954b101565d60c2088f8943d94f7f11",
+    "url": "https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221",
     "controlled_failure": false,
-    "notification_status": "NOT_OBSERVED"
+    "failed_stage": "gate",
+    "analysis_id": "5e19b2af-749c-4c99-b070-ef3429b33858",
+    "quality_gate_status": "ERROR",
+    "new_coverage_percent": 45.0,
+    "required_new_coverage_percent": 80.0,
+    "application_tests": 59,
+    "notification_status": "DELIVERED",
+    "notification_provider": "discord",
+    "notification_http_code": 200,
+    "notification_message_id": "1557928573833052170"
   },
   "controlled_failure_marker_enabled": false,
   "part2_video_generated": false,
-  "submission_status": "PENDING_TARGET_REPOSITORY_CONFIGURATION_RUNS_AND_VIDEO",
-  "note": "Prepared implementation. No previous repository run ID, analysis ID or receipt is presented as evidence of this repository. Replace pending values only after verifying actual execution sources.",
+  "submission_status": "REAL_SONAR_AND_FAILURE_NOTIFICATION_VERIFIED_PENDING_COVERAGE_IMPROVEMENT_AND_VIDEO",
+  "note": "Real scanner analysis, Gate rejection and Discord server acknowledgement have been verified in this repository. The application artifact was correctly blocked because new-code coverage was 45.0%, below 80.0%. The delivery requires a new successful run and the real replay video; no failed Gate is presented as approved.",
   "local_implementation_checks_after_adaptation": {
     "tests": 50,
     "conclusion": "success",
