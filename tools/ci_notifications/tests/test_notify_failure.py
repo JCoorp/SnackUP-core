@@ -149,6 +149,92 @@ class NotificationTests(unittest.TestCase):
             self.assertEqual((code, receipt["status"]), (0, "SKIPPED"))
             self.assertEqual(opener.requests, [])
 
+    def test_success_requires_literal_true_opt_in(self):
+        for setting in (None, "false", "True", "TRUE", "1", "yes", " true "):
+            with self.subTest(setting=setting):
+                env = {**self.env(DISCORD_URL), "CI_EVIDENCE_CONTROLLED_FAILURE": "true"}
+                if setting is not None:
+                    env["CI_NOTIFY_SUCCESS"] = setting
+                opener = FakeOpener()
+                receipt, code = notifier.notify("success", "controlled_failure", env, opener)
+                self.assertEqual((code, receipt["status"]), (0, "SKIPPED"))
+                self.assertIsNone(receipt["failed_stage"])
+                self.assertIs(receipt["controlled_failure"], False)
+                self.assertEqual(opener.requests, [])
+
+    def test_opt_in_success_uses_confirmation_and_success_payload(self):
+        cases = (
+            ("discord", DISCORD_URL, Response(body=b'{"id":"987654321","token":"DO_NOT_STORE"}'), "content"),
+            ("slack", SLACK_URL, Response(body=b"ok"), "text"),
+        )
+        for provider, url, response, message_field in cases:
+            with self.subTest(provider=provider):
+                env = {**self.env(url), "CI_NOTIFY_SUCCESS": "true",
+                       "CI_EVIDENCE_CONTROLLED_FAILURE": "true",
+                       "CI_COMMIT_SHA": "b" * 40, "CI_BRANCH_REF": "feature/ci-sonar-notifications"}
+                opener = FakeOpener(response)
+                receipt, code = notifier.notify("success", "controlled_failure", env, opener)
+                self.assertEqual((code, receipt["status"], receipt["provider"]), (0, "DELIVERED", provider))
+                self.assertEqual(receipt["pipeline_status"], "success")
+                self.assertIsNone(receipt["failed_stage"])
+                self.assertIs(receipt["controlled_failure"], False)
+                request = opener.requests[0][0]
+                message = json.loads(request.data)[message_field]
+                for expected in ("CI APROBADO", BASE_ENV["GITHUB_REPOSITORY"],
+                                 "feature/ci-sonar-notifications", "bbbbbbbbbbbb", "#1234",
+                                 "https://github.com/Gabino-RG/SnackUP-core/actions/runs/1234",
+                                 "Las validaciones aprobaron y el artefacto se generó."):
+                    self.assertIn(expected, message)
+                for unwanted in ("Etapa fallida", "El flujo se detuvo", "FALLO CONTROLADO", "PIPELINE FALLIDO"):
+                    self.assertNotIn(unwanted, message)
+                self.assertNotIn("TEST_SECRET_NOT_REAL", message + json.dumps(receipt))
+                self.assertNotIn("DO_NOT_STORE", json.dumps(receipt))
+                if provider == "discord":
+                    self.assertTrue(request.full_url.endswith("?wait=true"))
+                    self.assertEqual(receipt["message_id"], "987654321")
+                    self.assertEqual(receipt["acknowledgement"], "discord_created_message")
+                else:
+                    self.assertEqual(receipt["acknowledgement"], "slack_ok")
+
+    def test_cancelled_skipped_unknown_never_send_with_success_opt_in(self):
+        for status in ("cancelled", "skipped", "unknown", "FAILURE", "SUCCESS"):
+            for setting in ("false", "true"):
+                with self.subTest(status=status, setting=setting):
+                    env = {**self.env(DISCORD_URL), "CI_NOTIFY_SUCCESS": setting}
+                    opener = FakeOpener()
+                    receipt, code = notifier.notify(status, "Build", env, opener)
+                    self.assertEqual((code, receipt["status"]), (0, "SKIPPED"))
+                    self.assertEqual(opener.requests, [])
+
+    def test_opt_in_success_rejects_invalid_server_acknowledgement(self):
+        for body in (b"", b"{}", b"[]", b'{"id":"secret token"}', b'{"id":123}', b"invalid JSON"):
+            with self.subTest(body=body):
+                env = {**self.env(DISCORD_URL), "CI_NOTIFY_SUCCESS": "true"}
+                receipt, code = notifier.notify("success", "", env, FakeOpener(Response(200, body)))
+                self.assertEqual((code, receipt["status"]), (1, "FAILED"))
+                self.assertEqual(receipt["reason"], "INVALID_SERVER_ACKNOWLEDGEMENT")
+                self.assertNotIn("message_id", receipt)
+                self.assertIsNone(receipt["failed_stage"])
+                self.assertNotIn("secret token", json.dumps(receipt))
+
+    def test_cli_success_reads_status_and_opt_in_from_environment(self):
+        opener = FakeOpener(Response(body=b'{"id":"987654321"}'))
+        env = {**self.env(DISCORD_URL), "CI_PIPELINE_STATUS": "success", "CI_NOTIFY_SUCCESS": "true",
+               "CI_FAILED_STAGE": "controlled_failure", "CI_EVIDENCE_CONTROLLED_FAILURE": "true"}
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "notification-receipt.json"
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with patch.dict(notifier.os.environ, env, clear=True), patch.object(notifier, "build_opener", return_value=opener), redirect_stdout(stdout), redirect_stderr(stderr):
+                code = notifier.main(["--receipt", str(target)])
+            self.assertEqual(code, 0)
+            saved = json.loads(target.read_text())
+            self.assertEqual(saved["pipeline_status"], "success")
+            self.assertEqual(saved["status"], "DELIVERED")
+            self.assertIsNone(saved["failed_stage"])
+            self.assertIs(saved["controlled_failure"], False)
+            self.assertEqual(saved, json.loads(stdout.getvalue()))
+            self.assertNotIn("TEST_SECRET_NOT_REAL", stdout.getvalue() + stderr.getvalue() + target.read_text())
+
     def test_cli_receipt_and_output_never_include_webhook(self):
         opener = FakeOpener(Response(body=b"ok"))
         with tempfile.TemporaryDirectory() as temporary:

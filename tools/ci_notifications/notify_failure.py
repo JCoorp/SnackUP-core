@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Notify a failed SnackUP CI run through Slack or Discord, without exposing secrets.
+"""Notify SnackUP CI outcomes through Slack or Discord, without exposing secrets.
 
 The acknowledgement receipt proves server acceptance, not that a person read it.
-Only the literal pipeline status ``failure`` sends a message. The webhook stays in
-CI_FAILURE_WEBHOOK_URL and is never written to stdout, receipts or error messages.
+Failures are notified by default. Success requires CI_NOTIFY_SUCCESS=true; other
+statuses never send. The webhook stays in CI_FAILURE_WEBHOOK_URL and is never
+written to stdout, receipts or error messages.
 """
 
 from __future__ import annotations
@@ -104,16 +105,20 @@ def run_context(env: Mapping[str, str], stage: str) -> dict:
 
 
 def payload_for(provider: str, context: dict) -> dict:
-    label = "FALLO CONTROLADO PARA EVIDENCIA" if context["controlled_failure"] else "PIPELINE FALLIDO"
+    success = context.get("pipeline_status") == "success"
+    label = "CI APROBADO" if success else (
+        "FALLO CONTROLADO PARA EVIDENCIA" if context["controlled_failure"] else "PIPELINE FALLIDO")
     lines = [
         f"SnackUP CI — {label}",
         f"Repositorio: {context['repository']}",
         f"Rama: {context['branch']}",
         f"Commit: {context['commit'][:12]}",
-        f"Etapa fallida: {context['failed_stage']}",
-        f"Ejecución: #{context['run_id'] or 'no disponible'} · intento {context['run_attempt']}",
-        "El flujo se detuvo. Revisar el registro y corregir antes de integrar.",
     ]
+    if not success:
+        lines.append(f"Etapa fallida: {context['failed_stage']}")
+    lines.append(f"Ejecución: #{context['run_id'] or 'no disponible'} · intento {context['run_attempt']}")
+    lines.append("Las validaciones aprobaron y el artefacto se generó." if success else
+                 "El flujo se detuvo. Revisar el registro y corregir antes de integrar.")
     if context["run_url"]:
         lines.append(f"Ver pipeline: {context['run_url']}")
     message = "\n".join(lines)
@@ -137,7 +142,9 @@ def notify(status: str, stage: str, env: Mapping[str, str] | None = None,
         "delivery_scope": "server_acknowledgement_only",
         **run_context(env, stage),
     }
-    if status != "failure":
+    if status == "success":
+        receipt.update(failed_stage=None, controlled_failure=False)
+    if status != "failure" and not (status == "success" and env.get("CI_NOTIFY_SUCCESS") == "true"):
         receipt["reason"] = "PIPELINE_NOT_FAILED"
         return receipt, 0
 
@@ -208,7 +215,7 @@ def write_receipt(path: Path, receipt: dict) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Notifica únicamente un fallo del CI de SnackUP.")
+    parser = argparse.ArgumentParser(description="Notifica fallos del CI de SnackUP y éxitos con CI_NOTIFY_SUCCESS=true.")
     parser.add_argument("--status", default=os.environ.get("CI_PIPELINE_STATUS", "unknown"))
     parser.add_argument("--stage", default=os.environ.get("CI_FAILED_STAGE", ""))
     parser.add_argument("--receipt", type=Path, default=Path("evidence/notification-receipt.json"))

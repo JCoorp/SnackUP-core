@@ -142,9 +142,9 @@ jobs:
           overwrite: true
 
   notify:
-    name: Notificación de fallo
+    name: Notificación del resultado
     needs: validate
-    if: ${{ always() && needs.validate.result == 'failure' }}
+    if: ${{ always() && (needs.validate.result == 'failure' || needs.validate.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -153,13 +153,15 @@ jobs:
         with:
           ref: ${{ env.CI_COMMIT_SHA }}
 
-      - name: Notificar fallo en Slack o Discord
+      - name: Notificar resultado en Slack o Discord
         id: notification
         env:
           CI_FAILURE_WEBHOOK_URL: ${{ secrets.CI_FAILURE_WEBHOOK_URL }}
+          CI_PIPELINE_STATUS: ${{ needs.validate.result }}
+          CI_NOTIFY_SUCCESS: 'true'
           CI_FAILED_STAGE: ${{ needs.validate.outputs.failed_stage || 'Consultar registro de CI' }}
           CI_EVIDENCE_CONTROLLED_FAILURE: ${{ needs.validate.outputs.controlled_failure || 'false' }}
-        run: python3 tools/ci_notifications/notify_failure.py --status failure --receipt evidence/notification-receipt.json
+        run: python3 tools/ci_notifications/notify_failure.py --receipt evidence/notification-receipt.json
 
       - name: Conservar comprobante de notificación
         if: always()

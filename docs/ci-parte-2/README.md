@@ -24,7 +24,7 @@ El proyecto Flutter está en la **raíz del repositorio**: `pubspec.yaml`, `lib/
 | SonarQube | Analiza `lib/` y `test/` en SonarQube Cloud e importa `coverage/lcov.info`. |
 | Quality Gate | Espera la tarea del scanner y consulta el resultado de su `analysisId`. Solo `OK` permite continuar. |
 | Artefacto | Conserva el paquete validado como `snackup-integrated-web`. |
-| Notificación de fallo | Un job independiente se ejecuta ante `failure` y exige el acuse real de Slack o Discord. |
+| Notificación del resultado | Un job independiente espera la validación completa: envía `CI APROBADO` después del artefacto o avisa de la primera falla. Exige el acuse real de Slack o Discord. |
 
 **Fail Fast:** el primer error detiene las siguientes etapas de validación. La auditoría y la notificación se conservan para comunicar el fallo. Una etapa omitida no se presenta como aprobada.
 
@@ -54,10 +54,19 @@ El mensaje incluye SnackUP, rama, commit, primera etapa fallida, ID/intento de e
 - **Slack:** exige HTTP 200 y cuerpo de respuesta `ok`.
 - Una configuración ausente, un error HTTP o una respuesta inesperada genera un resultado fallido.
 - Un pipeline aprobado no envía un aviso de fallo.
+- Para la demostración completa, el workflow habilita `CI_NOTIFY_SUCCESS=true`: un resultado aprobado envía `CI APROBADO` después de generar el artefacto. Los resultados cancelados u omitidos no se anuncian como aprobados.
 
 `DELIVERED` significa aceptación del mensaje por el servidor del proveedor. No significa que una persona lo haya leído. Se guardan `snackup-ci-audit` con los resultados de CI/SonarQube y `snackup-ci-notification` con el acuse público. El paquete de aplicación aprobado se conserva por separado como `snackup-integrated-web`.
 
 ## Usar las dos ejecuciones reales
+
+### Ejecutar una prueba completa frente al maestro
+
+Mantener `docs/ci-parte-2/failure-test.json` con `"enabled": false`. Editar únicamente su texto `purpose` y guardar un commit en `feature/ci-sonar-notifications` con el PR #4 abierto hacia `main` activa una ejecución real. En GitHub Actions, abrir **Flutter CI - SonarQube y alertas**: se ejecutan análisis, pruebas, compilación, SonarQube, Quality Gate, empaquetado y finalmente el job **Notificación del resultado**. Si la validación aprueba, Discord recibe **CI APROBADO**; si falla, recibe el diagnóstico de esa falla. La notificación conserva el comprobante con HTTP e ID del mensaje creado.
+
+El marcador `enabled=true` sigue reservado para demostrar una detención y la alerta de fallo; no es el modo de la prueba completa.
+
+### Fuentes de la evidencia entregada
 
 1. Usar como evidencia del fallo real [la ejecución 37869730221, intento 2](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221): SonarQube devolvió Gate `ERROR` por cobertura nueva de 45.0% frente al 80.0% requerido, bloqueó el artefacto y Discord confirmó la notificación con HTTP 200 e ID de mensaje. Este fallo ya acredita la alerta; no requiere provocar otro fallo artificial.
 2. Usar como caso aprobado [la ejecución 37871800187, intento 1](https://github.com/JCoorp/SnackUP-core/actions/runs/37871800187): 188 pruebas, compilación, SonarQube, Gate `OK`, cobertura nueva 86.5% y artefacto validado. Sus resultados corresponden al mismo commit y análisis.

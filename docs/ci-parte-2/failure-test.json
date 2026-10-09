@@ -1,4 +1,4 @@
 {
   "enabled": false,
-  "purpose": "Prueba explícita de alerta después de aprobar SonarQube, en el PR de feature/ci-sonar-notifications hacia main. Restaurar false después de grabar."
+  "purpose": "Prueba completa en clase: ejecutar el CI, generar el artefacto y notificar el resultado en Discord."
 }
