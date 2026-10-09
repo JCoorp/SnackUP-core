@@ -23,8 +23,8 @@
     "transferred_application_validation": "59_TESTS_PASSED_IN_TARGET_REPOSITORY_RUN_37869730221_ATTEMPT_2"
   },
   "implementation_checks_in_target_repository": {
-    "run_id": 37872594372,
-    "commit": "588f48e72d3a34eb57df77fd58f86c266e4214a1",
+    "run_id": 37873528988,
+    "commit": "511dbbb109ea496afca771643849a35df1a72e31",
     "conclusion": "success",
     "tests": 52
   },
@@ -62,9 +62,9 @@
     "notification_message_id": "1557928573833052170"
   },
   "controlled_failure_marker_enabled": false,
-  "part2_video_generated": false,
-  "submission_status": "PENDING_VIDEO_WITH_VERIFIED_REPLAY_CLOCK",
-  "note": "Real pipeline validation and notification remain verified. Rerecording video with an explicit recorded snapshot clock, so in-progress stage durations match the native start times instead of the rendering wall clock.",
+  "part2_video_generated": true,
+  "submission_status": "READY_FOR_SUBMISSION",
+  "note": "188 Flutter tests, Web build and real Sonar Gate OK verified. New-code coverage 86.5%, required 80%. Real failed Gate and Discord message acknowledgement verified. 52 implementation tests passed remotely. The 80-second H.264 video was completely decoded, visually reviewed and checked against original recorded stage times. The final scene is approved CI with validated artifact. Controlled failure is disabled.",
   "local_implementation_checks_after_adaptation": {
     "tests": 52,
     "conclusion": "success",
@@ -74,18 +74,18 @@
     "source_success_run": 37871800187,
     "source_failure_run": 37869730221,
     "recording_revision": 3,
-    "run_id": 37872594393,
-    "commit": "588f48e72d3a34eb57df77fd58f86c266e4214a1",
-    "url": "https://github.com/JCoorp/SnackUP-core/actions/runs/37872594393",
+    "run_id": 37873528965,
+    "commit": "511dbbb109ea496afca771643849a35df1a72e31",
+    "url": "https://github.com/JCoorp/SnackUP-core/actions/runs/37873528965",
     "conclusion": "success",
-    "artifact_id": 11590069295,
+    "artifact_id": 11591830855,
     "filename": "SnackUP_Pipeline_CI_Parte2.mp4",
     "duration_seconds": 80,
     "codec": "h264",
     "resolution": "1600x1000",
-    "video_sha256": "943fd88a00a23d6cb84e0da00576d3ed303793d5565f187f827951a30ed7c7f5",
+    "video_sha256": "5b8431d20c79fd5b2d5dd6473244102ca09b9274e67b1ca2980acd634e2381fd",
     "browser_errors": 0,
-    "key_frames_visually_reviewed": 4,
-    "status": "RERECORDING_WITH_RECORDED_CLOCK"
+    "key_frames_visually_reviewed": 6,
+    "recorded_clock_verified": true
   }
 }
