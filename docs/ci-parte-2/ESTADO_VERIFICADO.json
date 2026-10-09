@@ -62,9 +62,9 @@
     "notification_message_id": "1557928573833052170"
   },
   "controlled_failure_marker_enabled": false,
-  "part2_video_generated": true,
-  "submission_status": "READY_FOR_SUBMISSION",
-  "note": "188 Flutter tests, Web build and real Sonar Gate OK verified. New-code coverage 86.5%, required 80%. Real failed Gate and Discord message acknowledgement verified. 52 implementation tests passed remotely. The 80-second H.264 video was generated from matching real run data and visually checked; final scene is approved CI with validated artifact. Controlled failure is disabled.",
+  "part2_video_generated": false,
+  "submission_status": "PENDING_VIDEO_WITH_VERIFIED_REPLAY_CLOCK",
+  "note": "Real pipeline validation and notification remain verified. Rerecording video with an explicit recorded snapshot clock, so in-progress stage durations match the native start times instead of the rendering wall clock.",
   "local_implementation_checks_after_adaptation": {
     "tests": 52,
     "conclusion": "success",
@@ -73,7 +73,7 @@
   "video_generation": {
     "source_success_run": 37871800187,
     "source_failure_run": 37869730221,
-    "recording_revision": 2,
+    "recording_revision": 3,
     "run_id": 37872594393,
     "commit": "588f48e72d3a34eb57df77fd58f86c266e4214a1",
     "url": "https://github.com/JCoorp/SnackUP-core/actions/runs/37872594393",
@@ -85,6 +85,7 @@
     "resolution": "1600x1000",
     "video_sha256": "943fd88a00a23d6cb84e0da00576d3ed303793d5565f187f827951a30ed7c7f5",
     "browser_errors": 0,
-    "key_frames_visually_reviewed": 4
+    "key_frames_visually_reviewed": 4,
+    "status": "RERECORDING_WITH_RECORDED_CLOCK"
   }
 }

@@ -55,12 +55,27 @@ test('timeline never reveals future logs or results and continues observing noti
   const source = fixture(true).state;
   let projected = projectState(source, 45).state;
   assert.equal(projected.stages[4].status, 'running');
+  assert.equal(projected.replay_time_utc, '2026-10-08T12:00:45.000Z');
+  // Exercise the UI's actual formatter with its interactive controller stopped
+  // and a wall clock hours later than the recorded execution.
+  const ui = require('node:fs').readFileSync(require('node:path').join(
+    __dirname, '../ci_agent/web/app.js'), 'utf8');
+  const durationFormatter = ui.match(/function durationLabel\(seconds\) \{[\s\S]*?\n  \}/)[0];
+  const stageFormatter = ui.match(/function stageDuration\(stage\) \{[\s\S]*?\n  \}/)[0];
+  const displayedDuration = require('node:vm').runInNewContext(
+    `${durationFormatter}\n${stageFormatter}\nstageDuration(stage)`, {
+      state:projected, stage:projected.stages[4], replay:null,
+      timestamp:value => value ? Date.parse(value) : NaN,
+      Date:{now:() => Date.parse('2026-10-08T22:00:00.000Z')},
+    });
+  assert.equal(displayedDuration, '5 s');
   assert.deepEqual(projected.stages[4].logs, []);
   assert.equal(projected.stages[6].status, 'pending');
   assert.equal(projected.conclusion, null);
   projected = projectState(source, 65).state;
   assert.equal(projected.stages[5].status, 'failure');
   assert.equal(projected.stages[6].status, 'running');
+  assert.equal(projected.replay_time_utc, '2026-10-08T12:01:05.000Z');
   assert.equal(projected.status, 'running');
   assert.equal(projectState(source, Infinity).state.conclusion, 'failure');
 });

@@ -133,6 +133,7 @@ function projectState(source, elapsedSeconds) {
   const now = times.start + elapsed * 1000, final = now >= times.end;
   const projected = clone(source);
   projected.mode = 'replay';
+  projected.replay_time_utc = new Date(now).toISOString();
   projected.status = final ? 'completed' : 'running';
   projected.conclusion = final ? source.conclusion : null;
   projected.completed_at = final ? source.completed_at : null;

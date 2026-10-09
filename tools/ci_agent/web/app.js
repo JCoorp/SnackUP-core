@@ -22,7 +22,13 @@
     if (!Number.isFinite(start)) return '—';
     if (stage.status === 'running' && replay) return durationLabel(Math.max(0, replay.elapsed - ((start - replay.start) / 1000)));
     if (Number.isFinite(end)) return durationLabel((end - start) / 1000);
-    if (stage.status === 'running') return durationLabel((Date.now() - start) / 1000);
+    if (stage.status === 'running') {
+      // Exported replay frames carry their recorded clock while the interactive
+      // replay controller is stopped. Wall time only measures live executions.
+      const recordedNow = state?.mode === 'replay' ? timestamp(state.replay_time_utc) : NaN;
+      const current = Number.isFinite(recordedNow) ? recordedNow : Date.now();
+      return durationLabel(Math.max(0, (current - start) / 1000));
+    }
     return '—';
   }
 
