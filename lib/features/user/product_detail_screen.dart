@@ -3,13 +3,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
+import 'student_order_repository.dart';
+import 'order_checkout.dart';
 
 class ProductDetailScreen extends StatefulWidget {
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
   final Map<String, dynamic> product;
   final String productId;
 
   const ProductDetailScreen({
     super.key,
+    this.firestore,
+    this.auth,
     required this.product,
     required this.productId,
   });
@@ -19,18 +25,21 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  FirebaseFirestore get _firestore => widget.firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth get _auth => widget.auth ?? FirebaseAuth.instance;
+
   int _quantity = 1;
   final _notesController = TextEditingController();
   bool _isLoading = false;
   bool _isFavorite = false;
-  late DocumentReference _favoriteRef;
+  DocumentReference? _favoriteRef;
 
   @override
   void initState() {
     super.initState();
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = _auth.currentUser?.uid;
     if (userId != null) {
-      _favoriteRef = FirebaseFirestore.instance
+      _favoriteRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('favorites')
@@ -39,14 +48,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _toggleFavorite() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+    final userId = _auth.currentUser?.uid;
+    if (userId == null || _favoriteRef == null) {
+      _showError('Inicia sesión para guardar favoritos.');
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
       if (_isFavorite) {
-        await _favoriteRef.delete();
+        await _favoriteRef!.delete();
         _showSuccess('Quitado de Favoritos');
       } else {
         final favoriteData = {
@@ -58,7 +70,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           'notes': _notesController.text.trim(),
           'addedAt': FieldValue.serverTimestamp(),
         };
-        await _favoriteRef.set(favoriteData);
+        await _favoriteRef!.set(favoriteData);
         _showSuccess('Añadido a Favoritos');
       }
     } catch (e) {
@@ -71,6 +83,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _increment() {
+    final stock = (widget.product['stock'] as num?)?.toInt() ?? 0;
+    if (_isLoading || _quantity >= stock || _quantity >= maxOrderQuantity) {
+      return;
+    }
     setState(() => _quantity++);
   }
 
@@ -81,43 +97,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _addToCart() async {
+    if (_isLoading) return;
     setState(() => _isLoading = true);
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) {
-      _showError('Error: Usuario no encontrado.');
-      setState(() => _isLoading = false);
-      return;
-    }
-    
     try {
-      final cartRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('cart')
-          .doc(widget.productId);
-      
-      final cartItem = {
-        'productId': widget.productId,
-        'businessId': widget.product['businessId'],
-        'name': widget.product['name'],
-        'price': widget.product['price'],
-        'imageUrl': widget.product['imageUrl'] ?? '',
-        'quantity': _quantity,
-        'notes': _notesController.text.trim(),
-        'addedAt': FieldValue.serverTimestamp(),
-      };
-      
-      await cartRef.set(cartItem);
-      if (mounted) {
-        _showSuccess('¡Añadido al carrito!');
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      _showError('Error al añadir: ${e.toString()}');
-    }
-    
-    if (mounted) {
-      setState(() => _isLoading = false);
+      await StudentOrderRepository(firestore: _firestore, auth: _auth).addProducts([
+        CartProductRequest(widget.productId, _quantity, _notesController.text),
+      ]);
+      if (!mounted) return;
+      _showSuccess('¡Añadido al carrito!');
+      Navigator.of(context).pop();
+    } catch (error) {
+      _showError(studentOrderError(error));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -147,12 +139,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final price = widget.product['price'] ?? 0.0;
+    final price = (widget.product['price'] as num?)?.toDouble() ?? 0.0;
     final String imageUrl = widget.product['imageUrl'] ?? '';
     final String description = widget.product['description'] ?? '';
     final double totalPrice = price * _quantity;
-    final int stock = widget.product['stock'] ?? 0;
-    final bool isSoldOut = stock <= 0;
+    final int stock = (widget.product['stock'] as num?)?.toInt() ?? 0;
+    final bool isSoldOut = stock <= 0 || widget.product['isAvailable'] != true;
     final bool isFeatured = widget.product['isFeatured'] ?? false;
 
     return Scaffold(
@@ -170,26 +162,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         actions: [
           // BOTÓN DE FAVORITOS MEJORADO
           StreamBuilder<DocumentSnapshot>(
-            stream: _favoriteRef.snapshots(),
+            stream: _favoriteRef?.snapshots(),
             builder: (context, snapshot) {
               _isFavorite = snapshot.hasData && snapshot.data!.exists;
               return IconButton(
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _isFavorite 
-                        ? AppColors.error.withOpacity(0.1)
+                    color: _isFavorite
+                        ? AppColors.error.withValues(alpha: 0.1)
                         : AppColors.componentBase,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: _isFavorite ? AppColors.error : AppColors.textSecondary,
+                    _isFavorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: _isFavorite
+                        ? AppColors.error
+                        : AppColors.textSecondary,
                     size: 20,
                   ),
                 ),
                 onPressed: _isLoading ? null : _toggleFavorite,
-                tooltip: _isFavorite ? 'Quitar de Favoritos' : 'Añadir a Favoritos',
+                tooltip: _isFavorite
+                    ? 'Quitar de Favoritos'
+                    : 'Añadir a Favoritos',
               );
             },
           ),
@@ -209,8 +207,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         height: 280,
                         width: double.infinity,
                         color: AppColors.componentBase,
-                        child: Image.network(
-                          imageUrl.isNotEmpty ? imageUrl : 'https://via.placeholder.com/400x280',
+                        child: imageUrl.isEmpty
+                            ? const Center(
+                                child: Icon(Icons.fastfood_rounded, size: 80),
+                              )
+                            : Image.network(
+                            imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
@@ -218,7 +220,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               child: Icon(
                                 Icons.fastfood_rounded,
                                 size: 80,
-                                color: AppColors.textSecondary.withOpacity(0.4),
+                                color: AppColors.textSecondary.withValues(
+                                  alpha: 0.4,
+                                ),
                               ),
                             );
                           },
@@ -276,7 +280,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       vertical: 8,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.success.withOpacity(0.1),
+                                      color: AppColors.success.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -340,11 +346,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             const SizedBox(height: 12),
                             TextField(
                               controller: _notesController,
+                              maxLength: 500,
                               style: AppText.body,
                               decoration: InputDecoration(
-                                hintText: 'Ej. Sin cebolla, sin cilantro, extra salsa...',
+                                hintText:
+                                    'Ej. Sin cebolla, sin cilantro, extra salsa...',
                                 hintStyle: AppText.notes.copyWith(
-                                  color: AppColors.textSecondary.withOpacity(0.6),
+                                  color: AppColors.textSecondary.withValues(
+                                    alpha: 0.6,
+                                  ),
                                 ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -387,7 +397,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 children: [
                                   // BOTÓN DISMINUIR
                                   IconButton.filled(
-                                    onPressed: _decrement,
+                                    onPressed: _isLoading || _quantity <= 1
+                                        ? null
+                                        : _decrement,
                                     style: IconButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       foregroundColor: Colors.white,
@@ -397,9 +409,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     ),
                                     icon: const Icon(Icons.remove_rounded),
                                   ),
-                                  
+
                                   const SizedBox(width: 24),
-                                  
+
                                   // CANTIDAD
                                   Container(
                                     padding: const EdgeInsets.symmetric(
@@ -421,12 +433,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       ),
                                     ),
                                   ),
-                                  
+
                                   const SizedBox(width: 24),
-                                  
+
                                   // BOTÓN AUMENTAR
                                   IconButton.filled(
-                                    onPressed: _increment,
+                                    onPressed:
+                                        _isLoading ||
+                                            _quantity >= stock ||
+                                            _quantity >= maxOrderQuantity
+                                        ? null
+                                        : _increment,
                                     style: IconButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       foregroundColor: Colors.white,
@@ -442,7 +459,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 100), // Espacio para el botón fijo
+                        const SizedBox(
+                          height: 100,
+                        ), // Espacio para el botón fijo
                       ],
                     ),
                   ),
@@ -457,14 +476,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             decoration: BoxDecoration(
               color: AppColors.background,
               border: Border(
-                top: BorderSide(
-                  color: AppColors.borders,
-                  width: 1,
-                ),
+                top: BorderSide(color: AppColors.borders, width: 1),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),
@@ -474,8 +490,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: ElevatedButton(
                 onPressed: isSoldOut ? null : (_isLoading ? null : _addToCart),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isSoldOut 
-                      ? AppColors.textSecondary 
+                  backgroundColor: isSoldOut
+                      ? AppColors.textSecondary
                       : AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -483,37 +499,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: 2,
-                  shadowColor: AppColors.primary.withOpacity(0.3),
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
                 ),
                 child: _isLoading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isSoldOut ? Icons.cancel_rounded : Icons.shopping_cart_rounded,
-                          size: 20,
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isSoldOut 
-                              ? 'Producto Agotado'
-                              : 'Añadir $_quantity al Carrito - \$${totalPrice.toStringAsFixed(2)}',
-                          style: AppText.body.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            fontSize: 16,
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isSoldOut
+                                ? Icons.cancel_rounded
+                                : Icons.shopping_cart_rounded,
+                            size: 20,
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 8),
+                          Text(
+                            isSoldOut
+                                ? 'Producto Agotado'
+                                : 'Añadir $_quantity al Carrito - \$${totalPrice.toStringAsFixed(2)}',
+                            style: AppText.body.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
               ),
             ),
           ),
@@ -533,11 +551,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 12,
-          ),
+          Icon(icon, color: Colors.white, size: 12),
           const SizedBox(width: 4),
           Text(
             text,

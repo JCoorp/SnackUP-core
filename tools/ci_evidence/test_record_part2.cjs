@@ -1,0 +1,182 @@
+'use strict';
+// Artificial fixtures exercise refusal and timeline rules only. Never video evidence.
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const {spawnSync} = require('node:child_process');
+const {validateEvidence, projectState, redact, scene, qualityGateProof, renderFrame} = require('./record_part2.cjs');
+
+function fixture(failure = false) {
+  const stages = ['checkout', 'analyze', 'unit', 'sonar-scan', 'quality-gate', failure ? 'controlled-failure' : 'artifact', 'notification'].map((id, index) => ({
+    id, name:id, status:failure && index === 5 ? 'failure' : !failure && index === 6 ? 'skipped' : 'success',
+    started_at:new Date(Date.UTC(2026, 9, 8, 12, 0, index * 10)).toISOString(),
+    completed_at:new Date(Date.UTC(2026, 9, 8, 12, 0, index * 10 + 9)).toISOString(), logs:[`TEST FIXTURE ONLY ${id}`]
+  }));
+  const run_id = failure ? 102 : 101;
+  return {state:{repository:'fixture/never-publish', run_id, sha:'a'.repeat(40), url:`https://github.com/fixture/never-publish/actions/runs/${run_id}`, status:'completed', conclusion:failure ? 'failure' : 'success', stages, artifacts:[], decisions:[]}, sonar:{analysis_id:'FIXTURE-ONLY-ANALYSIS', gate_status:'OK', scan_executed:true}, notification:failure ? {status:'DELIVERED', provider:'discord', acknowledgement:'discord_created_message', http_status:200, message_id:'1234567890123456789', run_id, repository:'fixture/never-publish', commit:'a'.repeat(40)} : {status:'SKIPPED'}};
+}
+
+test('completed fixtures satisfy the expected metadata schema', () => {
+  assert.equal(validateEvidence(fixture(), 'success').gateIndexes[0], 4);
+  assert.equal(validateEvidence(fixture(true), 'failure').notificationIndexes[0], 6);
+});
+test('configuration-only and skipped scans cannot count as successful Sonar evidence', () => {
+  const bundle = fixture(); bundle.sonar.scan_executed = false;
+  assert.throws(() => validateEvidence(bundle, 'success'), /no demuestra ejecutar/);
+  bundle.sonar.scan_executed = true; bundle.state.stages[3].name = 'Check Sonar credentials'; bundle.state.stages[3].id = 'config';
+  assert.throws(() => validateEvidence(bundle, 'success'), /no hay etapa SonarQube/);
+});
+test('a non-OK real Quality Gate blocks approved evidence', () => {
+  const bundle = fixture(); bundle.sonar.gate_status = 'ERROR';
+  assert.throws(() => validateEvidence(bundle, 'success'), /debe devolver OK/);
+});
+test('a successful process without provider acknowledgement cannot prove a notification', () => {
+  const bundle = fixture(true); bundle.notification.status = 'FAILED';
+  assert.throws(() => validateEvidence(bundle, 'failure'), /DELIVERED/);
+  bundle.notification.status = 'DELIVERED'; bundle.notification.http_status = 500;
+  assert.throws(() => validateEvidence(bundle, 'failure'), /HTTP 2xx/);
+});
+test('Discord needs the actual created message and receipt must match the run', () => {
+  const bundle = fixture(true); delete bundle.notification.message_id;
+  assert.throws(() => validateEvidence(bundle, 'failure'), /mensaje real creado/);
+  bundle.notification.message_id = '1234567890123456789'; bundle.notification.run_id = 999;
+  assert.throws(() => validateEvidence(bundle, 'failure'), /otra ejecución/);
+});
+test('Slack HTTP success must also acknowledge the expected provider body', () => {
+  const bundle = fixture(true); bundle.notification.provider = 'slack'; bundle.notification.acknowledgement = 'unverified';
+  assert.throws(() => validateEvidence(bundle, 'failure'), /confirmación HTTP 200/);
+  bundle.notification.acknowledgement = 'slack_ok';
+  assert.equal(validateEvidence(bundle, 'failure').notificationIndexes[0], 6);
+});
+test('notification before the failure is not failure-triggered evidence', () => {
+  const bundle = fixture(true); bundle.state.stages[6].started_at = bundle.state.stages[1].started_at;
+  assert.throws(() => validateEvidence(bundle, 'failure'), /precede al fallo/);
+});
+test('timeline never reveals future logs or results and continues observing notification', () => {
+  const source = fixture(true).state;
+  let projected = projectState(source, 45).state;
+  assert.equal(projected.stages[4].status, 'running');
+  assert.equal(projected.replay_time_utc, '2026-10-08T12:00:45.000Z');
+  // Exercise the UI's actual formatter with its interactive controller stopped
+  // and a wall clock hours later than the recorded execution.
+  const ui = require('node:fs').readFileSync(require('node:path').join(
+    __dirname, '../ci_agent/web/app.js'), 'utf8');
+  const durationFormatter = ui.match(/function durationLabel\(seconds\) \{[\s\S]*?\n  \}/)[0];
+  const stageFormatter = ui.match(/function stageDuration\(stage\) \{[\s\S]*?\n  \}/)[0];
+  const displayedDuration = require('node:vm').runInNewContext(
+    `${durationFormatter}\n${stageFormatter}\nstageDuration(stage)`, {
+      state:projected, stage:projected.stages[4], replay:null,
+      timestamp:value => value ? Date.parse(value) : NaN,
+      Date:{now:() => Date.parse('2026-10-08T22:00:00.000Z')},
+    });
+  assert.equal(displayedDuration, '5 s');
+  assert.deepEqual(projected.stages[4].logs, []);
+  assert.equal(projected.stages[6].status, 'pending');
+  assert.equal(projected.conclusion, null);
+  projected = projectState(source, 65).state;
+  assert.equal(projected.stages[5].status, 'failure');
+  assert.equal(projected.stages[6].status, 'running');
+  assert.equal(projected.replay_time_utc, '2026-10-08T12:01:05.000Z');
+  assert.equal(projected.status, 'running');
+  assert.equal(projectState(source, Infinity).state.conclusion, 'failure');
+});
+test('skipped stages stay skipped at the end and closing scene uses approved run', () => {
+  const success = fixture();
+  assert.equal(projectState(success.state, Infinity).state.stages[6].status, 'skipped');
+  assert.equal(scene(79, {success, failure:fixture(true)}).key, 'success');
+});
+test('webhook URLs and Sonar credentials cannot enter screenshots or output manifest', () => {
+  const sanitized = redact({token:'never-print', logs:['https://hooks.slack.com/services/T/B/secret', 'https://discord.com/api/webhooks/123/secret?wait=true', '-Dsonar.token=squ_123abc', 'Authorization: Bearer confidential']});
+  assert(!JSON.stringify(sanitized).includes('never-print'));
+  assert(!JSON.stringify(sanitized).includes('confidential'));
+  assert(!JSON.stringify(sanitized).includes('https://hooks.slack.com'));
+  assert(!JSON.stringify(sanitized).includes('https://discord.com'));
+  assert(!JSON.stringify(sanitized).includes('squ_123abc'));
+});
+
+test('collector output contract resolves the actual send step, not notifier checkout or receipt upload', () => {
+  // Consume the collector's existing in-memory unit fixtures, never write them as
+  // deliverable evidence or pass them to record(). Its short mock Discord ID is
+  // expanded solely in this test to match the recorder's real snowflake guard.
+  const python = [
+    'import importlib.util, json',
+    'spec=importlib.util.spec_from_file_location("contract_fixture", "tests/test_collect_part2.py")',
+    'm=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)',
+    'approved=m.ci.collect_run(m.FakeClient(m.fixture()), m.REPO, 100, True)',
+    'values=m.fixture(False); values[3]["message_id"]="1234567890123456789"',
+    'failed=m.ci.collect_run(m.FakeClient(values), m.REPO, 200, False)',
+    'print(json.dumps({"success":approved, "failure":failed}))'
+  ].join('\n');
+  const result = spawnSync('python3', ['-c', python], {cwd:__dirname, encoding:'utf8'});
+  assert.equal(result.status, 0, result.stderr);
+  const bundles = JSON.parse(result.stdout);
+  const approved = validateEvidence(bundles.success, 'success');
+  const failed = validateEvidence(bundles.failure, 'failure');
+  assert.equal(bundles.success.state.stages[approved.scanIndexes[0]].id, bundles.success.sonar.scan_stage_id);
+  assert.equal(bundles.success.state.stages[approved.gateIndexes[0]].id, bundles.success.sonar.gate_stage_id);
+  assert.equal(failed.notificationIndexes.length, 1);
+  assert.equal(bundles.failure.state.stages[failed.notificationIndexes[0]].name, 'Notificar fallo en Slack o Discord');
+  assert.equal(bundles.failure.state.stages[failed.notificationIndexes[0]].id, bundles.failure.notification.notification_stage_id);
+  // The full list still includes checkout and receipt preservation steps.
+  assert.equal(bundles.failure.state.stages.length, 6);
+  const forged = JSON.parse(JSON.stringify(bundles.failure));
+  forged.notification.notification_stage_id = 'gh-12-1';
+  assert.throws(() => validateEvidence(forged, 'failure'), /ID acreditado de notification/);
+});
+
+
+test('real rejected Quality Gate is accepted as failed evidence and displayed only after it finishes', () => {
+  const failed = fixture(true);
+  failed.sonar.gate_status = 'ERROR';
+  failed.state.stages[4].status = 'failure';
+  failed.state.stages[4].logs = ['Quality Gate ERROR: new_coverage 45 < 80'];
+  failed.state.stages[5].id = 'artifact';
+  failed.state.stages[5].name = 'Empaquetar artefacto';
+  failed.state.stages[5].status = 'skipped';
+  failed.state.stages[5].logs = [];
+  const checks = validateEvidence(failed, 'failure');
+  assert(!failed.state.stages.some(stage => /controlled|controlado/.test(stage.name)));
+  assert.deepEqual(qualityGateProof(projectState(failed.state, 45).state,
+    failed.sonar, checks.gateIndexes), {value:'Sin conclusión todavía', passed:false});
+  assert.deepEqual(qualityGateProof(projectState(failed.state, 50).state,
+    failed.sonar, checks.gateIndexes), {value:'ERROR', passed:false});
+  assert.equal(scene(30, {success:fixture(), failure:failed}).key, 'failure');
+  assert(!/controlado/.test(scene(30, {success:fixture(), failure:failed}).caption));
+  assert.equal(projectState(failed.state, Infinity).state.stages[5].status, 'skipped');
+  const success = fixture();
+  assert.deepEqual(qualityGateProof(projectState(success.state, Infinity).state,
+    success.sonar, validateEvidence(success, 'success').gateIndexes), {value:'OK', passed:true});
+});
+
+
+test('browser frame works with API-loaded UI and no bundled evidence globals', () => {
+  const elements = new Map();
+  const element = () => ({value:'', textContent:'', className:'', style:{setProperty(){}},
+    children:[], scrollHeight:100, scrollTop:0, offsetTop:0, clientHeight:50,
+    offsetHeight:50, append(...children){this.children.push(...children);},
+    replaceChildren(){this.children=[];},
+    getBoundingClientRect(){return {top:1000, height:50};},
+    parentElement:{querySelector(){return {getBoundingClientRect(){return {height:20};}}}},
+  });
+  global.document = {getElementById(id){
+    if (!elements.has(id)) elements.set(id, element());
+    return elements.get(id);
+  }, createElement:element};
+  global.window = {SnackupAgent:{setState(){}, selectStage(){}}};
+  try {
+    for (const caseKey of ['failure', 'success']) {
+      const bundle = fixture(caseKey === 'failure');
+      const checks = validateEvidence(bundle, caseKey);
+      const state = projectState(bundle.state, 0).state;
+      assert.equal(state.conclusion, null);
+      renderFrame({state, selected:0, caption:'API evidence', elapsed:0,
+        duration:69, bundle, checks, caseKey,
+        gateProof:qualityGateProof(state, bundle.sonar, checks.gateIndexes)});
+      assert.equal(elements.get('evidenceCase').value, caseKey);
+    }
+    assert.equal(window.SNACKUP_EVIDENCE, undefined);
+    assert.equal(window.SNACKUP_EVIDENCE_FAILURE, undefined);
+  } finally {
+    delete global.document;
+    delete global.window;
+  }
+});

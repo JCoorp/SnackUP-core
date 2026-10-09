@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'user_home_screen.dart';
@@ -8,7 +9,9 @@ import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
 class UserDashboardScreen extends StatefulWidget {
-  const UserDashboardScreen({super.key});
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  const UserDashboardScreen({super.key, this.firestore, this.auth});
 
   @override
   State<UserDashboardScreen> createState() => _UserDashboardScreenState();
@@ -18,18 +21,18 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    UserHomeScreen(),       // 0: Inicio
-    SearchScreen(),         // 1: Buscar
-    CartScreen(),           // 2: Carrito
-    ProfileOrdersScreen(),  // 3: Pedidos
+  late final List<Widget> _widgetOptions = <Widget>[
+    UserHomeScreen(firestore: widget.firestore, auth: widget.auth), // 0: Inicio
+    SearchScreen(firestore: widget.firestore, auth: widget.auth), // 1: Buscar
+    CartScreen(firestore: widget.firestore, auth: widget.auth), // 2: Carrito
+    ProfileOrdersScreen(firestore: widget.firestore, auth: widget.auth), // 3: Pedidos
   ];
 
   final List<String> _appBarTitles = [
     'SnackUp UTSJR',
     'Buscar Comida',
     'Mi Carrito',
-    'Mis Pedidos'
+    'Mis Pedidos',
   ];
 
   void _onItemTapped(int index) {
@@ -62,10 +65,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         actions: [
           // BOTÓN DE CERRAR SESIÓN MEJORADO
           IconButton(
-            icon: Icon(
-              Icons.logout_rounded,
-              color: AppColors.textSecondary,
-            ),
+            icon: Icon(Icons.logout_rounded, color: AppColors.textSecondary),
             tooltip: 'Cerrar Sesión',
             onPressed: () => _showLogoutDialog(context),
           ),
@@ -73,7 +73,8 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       ),
       body: PageView(
         controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(), // Desactiva scroll horizontal
+        physics:
+            const NeverScrollableScrollPhysics(), // Desactiva scroll horizontal
         onPageChanged: _onPageChanged,
         children: _widgetOptions,
       ),
@@ -94,15 +95,15 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: _selectedIndex == 0 
+                  color: _selectedIndex == 0
                       ? AppColors.primary.withOpacity(0.1)
                       : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.home_rounded,
-                  color: _selectedIndex == 0 
-                      ? AppColors.primary 
+                  color: _selectedIndex == 0
+                      ? AppColors.primary
                       : AppColors.textSecondary,
                   size: 24,
                 ),
@@ -126,15 +127,15 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: _selectedIndex == 1 
+                  color: _selectedIndex == 1
                       ? AppColors.accent.withOpacity(0.1)
                       : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.search_rounded,
-                  color: _selectedIndex == 1 
-                      ? AppColors.accent 
+                  color: _selectedIndex == 1
+                      ? AppColors.accent
                       : AppColors.textSecondary,
                   size: 24,
                 ),
@@ -158,15 +159,15 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: _selectedIndex == 2 
+                  color: _selectedIndex == 2
                       ? AppColors.tertiary.withOpacity(0.1)
                       : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.shopping_cart_rounded,
-                  color: _selectedIndex == 2 
-                      ? AppColors.tertiary 
+                  color: _selectedIndex == 2
+                      ? AppColors.tertiary
                       : AppColors.textSecondary,
                   size: 24,
                 ),
@@ -190,15 +191,15 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: _selectedIndex == 3 
+                  color: _selectedIndex == 3
                       ? AppColors.success.withOpacity(0.1)
                       : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.receipt_long_rounded,
-                  color: _selectedIndex == 3 
-                      ? AppColors.success 
+                  color: _selectedIndex == 3
+                      ? AppColors.success
                       : AppColors.textSecondary,
                   size: 24,
                 ),
@@ -225,9 +226,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             fontWeight: FontWeight.w600,
             fontSize: 12,
           ),
-          unselectedLabelStyle: AppText.notes.copyWith(
-            fontSize: 12,
-          ),
+          unselectedLabelStyle: AppText.notes.copyWith(fontSize: 12),
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
           backgroundColor: AppColors.background,
@@ -245,34 +244,24 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(
-              Icons.logout_rounded,
-              color: AppColors.error,
-              size: 24,
-            ),
+            Icon(Icons.logout_rounded, color: AppColors.error, size: 24),
             const SizedBox(width: 12),
             Text(
               'Cerrar Sesión',
-              style: AppText.h3.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppText.h3.copyWith(color: AppColors.textPrimary),
             ),
           ],
         ),
         content: Text(
           '¿Estás seguro de que quieres cerrar sesión?',
-          style: AppText.body.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: AppText.body.copyWith(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
               'Cancelar',
-              style: AppText.body.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: AppText.body.copyWith(color: AppColors.textSecondary),
             ),
           ),
           ElevatedButton(
@@ -283,9 +272,20 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop();
-              FirebaseAuth.instance.signOut();
+              try {
+                await (widget.auth ?? FirebaseAuth.instance).signOut();
+              } catch (_) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'No se pudo cerrar la sesión. Vuelve a intentar.',
+                    ),
+                  ),
+                );
+              }
             },
             child: Row(
               mainAxisSize: MainAxisSize.min,

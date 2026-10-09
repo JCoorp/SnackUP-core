@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'order_list_tab.dart';
 import 'package:snackup/theme/app_colors.dart';
 import 'package:snackup/theme/app_text.dart';
 
 class ViewOrdersScreen extends StatefulWidget {
   final String businessId;
-  const ViewOrdersScreen({super.key, required this.businessId});
+  final FirebaseFirestore? firestore;
+  const ViewOrdersScreen({super.key, required this.businessId, this.firestore});
 
   @override
   State<ViewOrdersScreen> createState() => _ViewOrdersScreenState();
@@ -18,7 +20,7 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, initialIndex: 1, vsync: this);
   }
 
   @override
@@ -46,10 +48,7 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
           child: Container(
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(
-                  color: AppColors.borders,
-                  width: 1,
-                ),
+                bottom: BorderSide(color: AppColors.borders, width: 1),
               ),
             ),
             child: TabBar(
@@ -73,6 +72,8 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
                 _buildTab('Nuevos', Icons.access_time_rounded),
                 _buildTab('Preparando', Icons.restaurant_rounded),
                 _buildTab('Listos', Icons.check_circle_rounded),
+                _buildTab('Entregados', Icons.done_all_rounded),
+                _buildTab('Cancelados', Icons.cancel_rounded),
               ],
             ),
           ),
@@ -89,7 +90,8 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
               orderType: 'scheduled',
               icon: Icons.schedule_rounded,
               title: 'Pedidos Programados',
-              description: 'Pedidos agendados para recoger en el futuro',
+              description:
+                  'Pedidos agendados, incluidos los pendientes de atender',
             ),
 
             // Pestaña 2: Pedidos Nuevos (ASAP)
@@ -119,6 +121,20 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
               title: 'Listos para Recoger',
               description: 'Pedidos listos para entrega',
             ),
+            _buildTabContent(
+              status: 'completed',
+              orderType: 'all',
+              icon: Icons.done_all_rounded,
+              title: 'Pedidos Entregados',
+              description: 'Historial de entregas confirmadas',
+            ),
+            _buildTabContent(
+              status: 'cancelled',
+              orderType: 'all',
+              icon: Icons.cancel_rounded,
+              title: 'Pedidos Cancelados',
+              description: 'Historial de pedidos cancelados',
+            ),
           ],
         ),
       ),
@@ -129,14 +145,7 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
     return Tab(
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 18,
-          ),
-          const SizedBox(width: 6),
-          Text(text),
-        ],
+        children: [Icon(icon, size: 18), const SizedBox(width: 6), Text(text)],
       ),
     );
   }
@@ -158,10 +167,7 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
           decoration: BoxDecoration(
             color: _getTabColor(status, orderType).withOpacity(0.1),
             border: Border(
-              bottom: BorderSide(
-                color: AppColors.borders,
-                width: 1,
-              ),
+              bottom: BorderSide(color: AppColors.borders, width: 1),
             ),
           ),
           child: Row(
@@ -172,11 +178,7 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
                   color: _getTabColor(status, orderType),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 24,
-                ),
+                child: Icon(icon, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -202,7 +204,10 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
               ),
               if (isUrgent) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.warning.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -238,6 +243,7 @@ class _ViewOrdersScreenState extends State<ViewOrdersScreen>
         Expanded(
           child: OrderListTab(
             businessId: widget.businessId,
+            firestore: widget.firestore,
             status: status,
             orderType: orderType,
           ),
