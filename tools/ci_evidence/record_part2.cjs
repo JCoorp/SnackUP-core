@@ -106,6 +106,17 @@ function validateEvidence(bundle, kind) {
   return {scanIndexes, gateIndexes, notificationIndexes};
 }
 
+// A failed gate is a concluded quality result too; reveal it only after
+// its observed step finishes, preserving fail-fast evidence during replay.
+function qualityGateProof(state, sonar, gateIndexes) {
+  const finished = gateIndexes.some(index =>
+    ['success', 'failure'].includes(state.stages[index].status));
+  return {
+    value: finished ? sonar.gate_status : 'Sin conclusión todavía',
+    passed: finished && sonar.gate_status === 'OK',
+  };
+}
+
 function timeline(state) {
   const executed = state.stages.filter(stage => ['success', 'failure'].includes(stage.status));
   const start = Math.min(...executed.map(stage => instant(stage.started_at)));
@@ -242,7 +253,7 @@ async function record(args, bundles, checks) {
       else if (current.focus === 'artifact') selected = projection.state.stages.findIndex(stage => /artifact|artefact|empaqueta|upload/i.test(textOf(stage)) && stage.status === 'success');
       if (selected === undefined || selected < 0) selected = projection.state.stages.findIndex(stage => stage.status === 'failure');
       if (selected < 0) selected = Math.max(0, projection.state.stages.length - 1);
-      await page.evaluate(({state, selected, caption, elapsed, duration, bundle, checks}) => {
+      await page.evaluate(({state, selected, caption, elapsed, duration, bundle, checks, gateProof}) => {
         window.SnackupAgent.setState(state); window.SnackupAgent.selectStage(selected);
         document.getElementById('video-caption').textContent = caption;
         document.getElementById('evidenceCase').value = state.conclusion === 'success' || state.run_id === window.SNACKUP_EVIDENCE.run_id ? 'success' : 'failure';
@@ -252,11 +263,10 @@ async function record(args, bundles, checks) {
         const add = (label, value, passed = false) => {const line = document.createElement('div'); line.textContent = `${label}: ${value}`; if (passed) line.className = 'verified'; proof.append(line);};
         const title = document.createElement('strong'); title.textContent = 'Evidencia de la segunda parte'; proof.append(title);
         const scanDone = checks.scanIndexes.some(index => state.stages[index].status === 'success');
-        const gateDone = checks.gateIndexes.some(index => state.stages[index].status === 'success');
         const notifyDone = checks.notificationIndexes.some(index => state.stages[index].status === 'success');
         add('SonarQube', scanDone ? 'Análisis ejecutado' : 'Pendiente / en curso', scanDone);
         if (scanDone && bundle.sonar.analysis_id) add('Análisis', bundle.sonar.analysis_id);
-        add('Quality Gate', gateDone ? bundle.sonar.gate_status : 'Sin conclusión todavía', gateDone && bundle.sonar.gate_status === 'OK');
+        add('Quality Gate', gateProof.value, gateProof.passed);
         if (notifyDone && bundle.notification.status === 'DELIVERED') {
           add('Aviso', `DELIVERED · ${bundle.notification.provider} · HTTP ${bundle.notification.http_status}`, true);
           if (bundle.notification.message_id) add('Mensaje', bundle.notification.message_id);
@@ -271,7 +281,7 @@ async function record(args, bundles, checks) {
         if (activeRow) list.scrollTop = Math.max(0, activeRow.offsetTop - list.offsetTop - list.clientHeight / 2 + activeRow.clientHeight / 2);
         document.getElementById('logPanel').scrollTop = currentFocusBottom(state.stages[selected]);
         function currentFocusBottom(stage) {return /notif|sonar|quality[ _-]*gate/i.test([stage.id, stage.name].join(' ')) ? document.getElementById('logPanel').scrollHeight : 0;}
-      }, {state:projection.state, selected, caption:current.caption, elapsed:projection.elapsed, duration:projection.times.duration, bundle, checks:checks[current.key]});
+      }, {state:projection.state, selected, caption:current.caption, elapsed:projection.elapsed, duration:projection.times.duration, bundle, checks:checks[current.key], gateProof:qualityGateProof(projection.state, bundle.sonar, checks[current.key].gateIndexes)});
       if (activeKey !== current.key) {
         activeKey = current.key;
         sizes[current.key] = await page.evaluate(() => {const list = document.getElementById('stageList'); return {height:list.clientHeight, content:list.scrollHeight, rows:list.children.length};});
@@ -310,5 +320,5 @@ async function main(argv = process.argv.slice(2)) {
   if (args.validateOnly) {console.log('Evidencia válida: SonarQube ejecutado, Quality Gate OK y aviso real DELIVERED. No se generó un video.'); return;}
   await record(args, bundles, checks);
 }
-module.exports = {argumentsFrom, indexes, validateEvidence, timeline, projectState, redact, scene, main};
+module.exports = {argumentsFrom, indexes, validateEvidence, timeline, projectState, redact, scene, qualityGateProof, main};
 if (require.main === module) main().catch(error => {console.error(`No se generó evidencia final: ${error.message}`); process.exitCode = 1;});

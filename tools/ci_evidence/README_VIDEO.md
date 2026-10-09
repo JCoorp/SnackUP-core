@@ -2,25 +2,27 @@
 
 La evidencia de esta entrega procede de **JCoorp/SnackUP-core**. `record_part2.cjs` utiliza dos ejecuciones CI reales terminadas del mismo repositorio: una aprobada y otra fallida con aviso confirmado. No ejecuta el pipeline ni envía avisos.
 
-Antes de grabar, configurar `SONAR_TOKEN` y `CI_FAILURE_WEBHOOK_URL` en JCoorp. Los secretos de otro repositorio no se transfieren. El proyecto SonarQube utiliza organización `jcoorp` y clave `JCoorp_SnackUP-core`. No reutilizar ejecuciones anteriores como prueba de este repositorio.
+Los secretos `SONAR_TOKEN` y `CI_FAILURE_WEBHOOK_URL` ya se verificaron mediante una ejecución real en JCoorp. El proyecto SonarQube utiliza organización `jcoorp` y clave `JCoorp_SnackUP-core`. La evidencia debe proceder de este repositorio; no sustituirla por ejecuciones de otro repositorio.
+
+[La ejecución 37869730221, intento 2](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221) aprobó 59 pruebas Flutter y la compilación. SonarQube rechazó su Quality Gate por cobertura nueva de 45.0%, inferior al 80.0% requerido; el artefacto quedó bloqueado y Discord confirmó el aviso con HTTP 200 e ID de mensaje. Este fallo real se utilizará para el video. [La nueva ejecución 37871800187](https://github.com/JCoorp/SnackUP-core/actions/runs/37871800187) aprobó las 188 pruebas, la compilación y el Gate con 86.5% de cobertura nueva. El video está en generación.
 
 ## Ruta recomendada: workflow de video
 
 Después de verificar ambos runs reales, guardar sus IDs como `success_run` y `failure_run` en `docs/ci-parte-2/evidence-runs.json`. Hacer commit de ese archivo en `feature/ci-sonar-notifications` activa **SnackUP CI parte 2 - video de evidencia real**. El workflow obtiene las fuentes usando `$GITHUB_REPOSITORY`, instala las dependencias de grabación y conserva `snackup-ci-part2-video`.
 
-El proyecto Flutter está en la raíz. Los controles analizan `lib/` y `test/`, importan `coverage/lcov.info` y conservan `build/web`; el colector no depende de una carpeta `app/`. La auditoría mantiene los nombres `snackup-ci-audit`, `snackup-ci-notification` y `snackup-integrated-web`.
+El proyecto Flutter está en la raíz. CI utiliza Flutter 3.32.0 con Dart 3.8.0. Los controles analizan `lib/` y `test/`, importan `coverage/lcov.info` y conservan `build/web`; el colector no depende de una carpeta `app/`. La auditoría mantiene los nombres `snackup-ci-audit`, `snackup-ci-notification` y `snackup-integrated-web`.
 
 ## Grabación local
 
 Requisitos: Python 3, Node.js 20 o posterior, Playwright con Chromium y FFmpeg con `libx264`. Se necesitan los archivos `tools/ci_agent/web/index.html`, `styles.css` y `app.js`. El grabador sirve la interfaz y los datos reales en `127.0.0.1`; no requiere iniciar el backend del agente ni cargar evidencia histórica.
 
-Con un `GITHUB_TOKEN` ya configurado en el entorno y permiso de lectura de Actions, ejecutar el colector sustituyendo los dos IDs de ejemplo por los reales:
+Con un `GITHUB_TOKEN` ya configurado en el entorno y permiso de lectura de Actions, ejecutar el colector con los dos IDs reales ya acreditados:
 
 ```bash
 python3 tools/ci_evidence/collect_part2.py \
   --repo JCoorp/SnackUP-core \
-  --success-run 123456789 \
-  --failure-run 123456790 \
+  --success-run 37871800187 \
+  --failure-run 37869730221 \
   --outdir evidencia-parte2
 
 npm install --prefix .ci-video --no-package-lock --no-save playwright@1.58.2
@@ -59,7 +61,7 @@ Cada etapa conserva `id`, `name`, `status`, `logs` y sus marcas de tiempo origin
 
 La ejecución aprobada necesita tarea Sonar exitosa, `analysis_id`, Gate `OK` y paquete de aplicación disponible. La ejecución fallida necesita un fallo observado y un aviso posterior aprobado con `DELIVERED`. Discord exige mensaje creado mediante `wait=true`; Slack exige HTTP 200 y cuerpo `ok`. Un HTTP 2xx aislado, una etapa omitida o una respuesta simulada no acreditan el requisito. `DELIVERED` demuestra aceptación por el servidor, no lectura humana.
 
-Para el caso previsto, el marcador de fallo se activa únicamente después de aprobar SonarQube y el Gate. Restaurar `docs/ci-parte-2/failure-test.json` a `"enabled": false` al terminar. Si se reintenta una ejecución, ejecutar todos los jobs para no mezclar comprobantes de intentos diferentes.
+Para esta entrega se utiliza el fallo real del Gate de la ejecución 37869730221, intento 2; no se necesita otro fallo artificial. `docs/ci-parte-2/failure-test.json` permanece con `"enabled": false`. El fallo controlado está disponible para demostraciones futuras y se activa solo después de aprobar SonarQube y el Gate; restaurar el marcador a `false` al terminar. Si se reintenta una ejecución, ejecutar todos los jobs para no mezclar comprobantes de intentos diferentes.
 
 ## Video y salidas
 
@@ -82,4 +84,4 @@ node --test tools/ci_evidence/test_record_part2.cjs
 node tools/ci_evidence/record_part2.cjs --success aprobado.json --failure fallido.json --validate-only
 ```
 
-Las fixtures son artificiales y prueban rechazo, concordancia y cronología. No se publican como ejecuciones del proyecto ni se usan para el video final. Las 50 pruebas de implementación aprobaron localmente tras la adaptación. Las 59 pruebas Flutter aprobadas en el trabajo previo son un antecedente; la aprobación remota de JCoorp debe acreditarse con sus propias ejecuciones nuevas.
+Las fixtures son artificiales y prueban rechazo, concordancia y cronología. No se publican como ejecuciones del proyecto ni se usan para el video final. [Las 50 pruebas de implementación aprobaron en GitHub Actions de JCoorp](https://github.com/JCoorp/SnackUP-core/actions/runs/37869702571). Una nueva regresión del grabador eleva la suite a 51 pruebas, aprobadas localmente y pendientes de validación remota. Las 59 pruebas Flutter de la ejecución 37869730221, intento 2, sí están acreditadas en JCoorp. Las 188 pruebas ampliadas y el nuevo CI aprobado están verificados en la ejecución 37871800187, intento 1, con 86.5% de cobertura del código nuevo y artefacto validado.

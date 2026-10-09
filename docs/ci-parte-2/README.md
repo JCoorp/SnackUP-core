@@ -4,9 +4,11 @@ La segunda parte de la actividad pide **el enlace del repositorio y un video cor
 
 El repositorio de esta entrega es [JCoorp/SnackUP-core](https://github.com/JCoorp/SnackUP-core), en la rama [feature/ci-sonar-notifications](https://github.com/JCoorp/SnackUP-core/tree/feature/ci-sonar-notifications). Los cambios se revisan mediante un PR hacia `main`; preparar la evidencia no requiere integrar la rama.
 
-**Estado verificado:** los dos secretos están configurados. [La ejecución real 37869730221, intento 2](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221) aprobó 59 pruebas Flutter y la compilación, ejecutó SonarQube y confirmó el mensaje de Discord con HTTP 200 e ID público. El Gate devolvió `ERROR` porque la cobertura del código nuevo fue 45.0%, inferior al 80.0% requerido. Se bloqueó correctamente el artefacto. Las calificaciones de seguridad, fiabilidad y mantenibilidad fueron A, la duplicación fue 1.9% y la revisión de hotspots 100%. Se amplían las pruebas para obtener un CI aprobado y generar el video; todavía no se presenta esta ejecución fallida como entrega final.
+**Estado verificado:** [la ejecución aprobada 37871800187](https://github.com/JCoorp/SnackUP-core/actions/runs/37871800187) pasó las **188 pruebas Flutter**, la compilación Web y el análisis SonarQube. Su Quality Gate devolvió **OK**, con **86.5% de cobertura del código nuevo** frente al 80% requerido, duplicación de 1.4%, calificaciones A en seguridad, fiabilidad y mantenibilidad, y hotspots revisados al 100%. El artefacto `snackup-integrated-web` quedó disponible.
 
-[Las 50 pruebas de implementación aprobaron en GitHub Actions de JCoorp](https://github.com/JCoorp/SnackUP-core/actions/runs/37869702571). La primera ejecución real del proyecto aprobó 59 pruebas Flutter; las pruebas adicionales de cobertura se validarán en una nueva ejecución. `ESTADO_VERIFICADO.json` distingue resultados observados de trabajo pendiente.
+[La ejecución real fallida 37869730221, intento 2](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221) había aprobado 59 pruebas Flutter y la compilación. SonarQube rechazó su Gate por cobertura nueva de 45.0% frente al 80% requerido: se bloqueó el artefacto y **Discord confirmó el mensaje con HTTP 200 e ID público**. Este fallo real y el nuevo CI aprobado son las fuentes del video. Los secretos ya están verificados y el marcador de fallo controlado permanece desactivado.
+
+[Las 50 pruebas de implementación aprobaron en GitHub Actions de JCoorp](https://github.com/JCoorp/SnackUP-core/actions/runs/37869702571). La nueva regresión del grabador eleva la suite a **51 pruebas**, aprobadas localmente y pendientes de su nueva ejecución remota. La generación del video está en curso; `ESTADO_VERIFICADO.json` registra los resultados observados.
 
 ## Pipeline y alcance de la actividad
 
@@ -15,7 +17,7 @@ El proyecto Flutter está en la **raíz del repositorio**: `pubspec.yaml`, `lib/
 | Etapa | Qué se comprueba |
 | --- | --- |
 | Checkout y configuración | Descarga el SHA real de la rama fuente del PR y verifica los identificadores y secretos obligatorios. |
-| Entorno y dependencias | Configura Flutter 3.32.0 y ejecuta `flutter pub get`. |
+| Entorno y dependencias | Configura Flutter 3.32.0 con Dart 3.8.0 y ejecuta `flutter pub get`. |
 | Análisis estático Flutter | `flutter analyze --no-fatal-infos --no-fatal-warnings`: los errores bloquean; información y advertencias no bloquean en este comando. |
 | Pruebas y cobertura | `flutter test --coverage` y LCOV no vacío. La suite contiene pruebas unitarias y de widgets. |
 | Compilación | `flutter build web --no-web-resources-cdn --target lib/main.dart`; produce `build/web`. |
@@ -55,19 +57,19 @@ El mensaje incluye SnackUP, rama, commit, primera etapa fallida, ID/intento de e
 
 `DELIVERED` significa aceptación del mensaje por el servidor del proveedor. No significa que una persona lo haya leído. Se guardan `snackup-ci-audit` con los resultados de CI/SonarQube y `snackup-ci-notification` con el acuse público. El paquete de aplicación aprobado se conserva por separado como `snackup-integrated-web`.
 
-## Obtener las dos ejecuciones reales
+## Usar las dos ejecuciones reales
 
-1. Guardar los secretos en JCoorp y abrir un PR de `feature/ci-sonar-notifications` hacia `main`. Mantener `docs/ci-parte-2/failure-test.json` con `"enabled": false`. Esperar a que pruebas, compilación, SonarQube, Quality Gate y artefacto aprueben. Conservar el ID de esta ejecución.
-2. Cambiar únicamente el marcador a `"enabled": true` y hacer commit en la misma rama. Tras aprobar SonarQube y el Gate, la etapa de fallo controlado debe detener el empaquetado. El job de notificación debe terminar correctamente con acuse `DELIVERED`. Conservar el ID de esta ejecución.
-3. Restaurar `"enabled": false` mediante un commit y comprobar que la rama vuelve a validar normalmente. El marcador permanece desactivado en la entrega final.
+1. Usar como evidencia del fallo real [la ejecución 37869730221, intento 2](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221): SonarQube devolvió Gate `ERROR` por cobertura nueva de 45.0% frente al 80.0% requerido, bloqueó el artefacto y Discord confirmó la notificación con HTTP 200 e ID de mensaje. Este fallo ya acredita la alerta; no requiere provocar otro fallo artificial.
+2. Usar como caso aprobado [la ejecución 37871800187, intento 1](https://github.com/JCoorp/SnackUP-core/actions/runs/37871800187): 188 pruebas, compilación, SonarQube, Gate `OK`, cobertura nueva 86.5% y artefacto validado. Sus resultados corresponden al mismo commit y análisis.
+3. Mantener `docs/ci-parte-2/failure-test.json` con `"enabled": false` durante esta entrega. Recopilar ambos resultados y generar el video a partir de sus tiempos originales.
 
-El fallo controlado está limitado a la rama de evidencia autorizada y el aviso lo identifica expresamente. Si falla la configuración, el scanner, el Gate o el webhook, debe corregirse esa causa antes de grabar la demostración prevista.
+El fallo controlado queda como opción para demostraciones futuras: solo después de aprobar SonarQube y el Gate, un marcador `"enabled": true` en la rama de evidencia autorizada provoca una detención identificada expresamente en el aviso. Restaurarlo a `false` al terminar. Para esta entrega se conserva el fallo real del Gate y el marcador permanece desactivado.
 
 Usar **Re-run all jobs** cuando sea necesario reintentar: tarea Sonar, auditoría y recibo deben corresponder al mismo `run_attempt`. No mezclar ejecuciones de repositorios, commits o intentos diferentes.
 
 ## Generar el video y entregar
 
-Después de obtener ambos IDs reales en JCoorp, crear `docs/ci-parte-2/evidence-runs.json` con las claves `success_run` y `failure_run`. Cada valor debe ser el ID real de su ejecución. Hacer commit de ese archivo en la rama de evidencia activa el workflow **SnackUP CI parte 2 - video de evidencia real**.
+Los dos IDs verificados ya se han guardado en `docs/ci-parte-2/evidence-runs.json` con `success_run: 37871800187` y `failure_run: 37869730221`. Su commit en la rama de evidencia activa el workflow **SnackUP CI parte 2 - video de evidencia real**.
 
 El recolector verifica repositorio, SHA, run/intento, análisis SonarQube y recibo de la notificación. El grabador utiliza la interfaz del agente y reconstruye las etapas según sus tiempos originales. La reproducción es acelerada; no se presenta como una ejecución en vivo.
 

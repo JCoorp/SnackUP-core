@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {spawnSync} = require('node:child_process');
-const {validateEvidence, projectState, redact, scene} = require('./record_part2.cjs');
+const {validateEvidence, projectState, redact, scene, qualityGateProof} = require('./record_part2.cjs');
 
 function fixture(failure = false) {
   const stages = ['checkout', 'analyze', 'unit', 'sonar-scan', 'quality-gate', failure ? 'controlled-failure' : 'artifact', 'notification'].map((id, index) => ({
@@ -106,4 +106,28 @@ test('collector output contract resolves the actual send step, not notifier chec
   const forged = JSON.parse(JSON.stringify(bundles.failure));
   forged.notification.notification_stage_id = 'gh-12-1';
   assert.throws(() => validateEvidence(forged, 'failure'), /ID acreditado de notification/);
+});
+
+
+test('real rejected Quality Gate is accepted as failed evidence and displayed only after it finishes', () => {
+  const failed = fixture(true);
+  failed.sonar.gate_status = 'ERROR';
+  failed.state.stages[4].status = 'failure';
+  failed.state.stages[4].logs = ['Quality Gate ERROR: new_coverage 45 < 80'];
+  failed.state.stages[5].id = 'artifact';
+  failed.state.stages[5].name = 'Empaquetar artefacto';
+  failed.state.stages[5].status = 'skipped';
+  failed.state.stages[5].logs = [];
+  const checks = validateEvidence(failed, 'failure');
+  assert(!failed.state.stages.some(stage => /controlled|controlado/.test(stage.name)));
+  assert.deepEqual(qualityGateProof(projectState(failed.state, 45).state,
+    failed.sonar, checks.gateIndexes), {value:'Sin conclusión todavía', passed:false});
+  assert.deepEqual(qualityGateProof(projectState(failed.state, 50).state,
+    failed.sonar, checks.gateIndexes), {value:'ERROR', passed:false});
+  assert.equal(scene(30, {success:fixture(), failure:failed}).key, 'failure');
+  assert(!/controlado/.test(scene(30, {success:fixture(), failure:failed}).caption));
+  assert.equal(projectState(failed.state, Infinity).state.stages[5].status, 'skipped');
+  const success = fixture();
+  assert.deepEqual(qualityGateProof(projectState(success.state, Infinity).state,
+    success.sonar, validateEvidence(success, 'success').gateIndexes), {value:'OK', passed:true});
 });
