@@ -1,0 +1,50 @@
+{
+  "repository": "JCoorp/SnackUP-core",
+  "branch": "feature/ci-sonar-notifications",
+  "updated_date_utc": "2026-10-09",
+  "project_layout": "flutter_at_repository_root",
+  "sonar": {
+    "organization": "jcoorp",
+    "project_key": "JCoorp_SnackUP-core",
+    "host": "https://sonarcloud.io",
+    "analysis_executed_in_target_repository": false,
+    "quality_gate_validated_in_target_repository": false
+  },
+  "target_repository_configuration": {
+    "SONAR_TOKEN": "PENDING_VERIFICATION_IN_JCOORP_REPOSITORY",
+    "CI_FAILURE_WEBHOOK_URL": "PENDING_VERIFICATION_IN_JCOORP_REPOSITORY",
+    "note": "Secrets configured in another repository are not transferred to this repository."
+  },
+  "historical_checks": {
+    "implementation_tests": 50,
+    "application_tests": 59,
+    "scope": "Previous work only; these counts do not prove execution or approval in JCoorp/SnackUP-core.",
+    "transferred_application_validation": "PENDING_TARGET_REPOSITORY_RUN"
+  },
+  "implementation_checks_in_target_repository": {
+    "run_id": null,
+    "commit": null,
+    "conclusion": "PENDING"
+  },
+  "successful_pipeline": {
+    "run_id": null,
+    "commit": null,
+    "quality_gate_status": "NOT_OBSERVED",
+    "validated_application_artifact": false
+  },
+  "failure_pipeline": {
+    "run_id": null,
+    "commit": null,
+    "controlled_failure": false,
+    "notification_status": "NOT_OBSERVED"
+  },
+  "controlled_failure_marker_enabled": false,
+  "part2_video_generated": false,
+  "submission_status": "PENDING_TARGET_REPOSITORY_CONFIGURATION_RUNS_AND_VIDEO",
+  "note": "Prepared implementation. No previous repository run ID, analysis ID or receipt is presented as evidence of this repository. Replace pending values only after verifying actual execution sources.",
+  "local_implementation_checks_after_adaptation": {
+    "tests": 50,
+    "conclusion": "success",
+    "scope": "Local implementation tests with mocked HTTP responses; not a target-repository CI run or real Sonar/webhook evidence."
+  }
+}

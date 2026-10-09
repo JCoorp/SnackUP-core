@@ -1,0 +1,103 @@
+# SnackUP · CI con SonarQube y notificaciones
+
+La segunda parte de la actividad pide **el enlace del repositorio y un video corto** que muestre los pasos del pipeline, el análisis SonarQube y el aviso automático cuando falla.
+
+El repositorio de esta entrega es [JCoorp/SnackUP-core](https://github.com/JCoorp/SnackUP-core), en la rama [feature/ci-sonar-notifications](https://github.com/JCoorp/SnackUP-core/tree/feature/ci-sonar-notifications). Los cambios se revisan mediante un PR hacia `main`; preparar la evidencia no requiere integrar la rama.
+
+**Estado actual: preparado para ejecutarse en JCoorp, con configuración y evidencia pendientes.** Los secretos configurados en otro repositorio no se transfieren a este. Hay que guardar o comprobar `SONAR_TOKEN` y `CI_FAILURE_WEBHOOK_URL` en JCoorp y obtener dos ejecuciones reales antes de declarar la entrega completa.
+
+La suite de controles y grabador contiene 50 pruebas y aprobó localmente después de esta adaptación. En el trabajo anterior se ejecutaron 59 pruebas de la aplicación Flutter. Este último resultado es histórico: los cambios y pruebas se trasladan al proyecto de esta entrega. La comprobación local y el número anterior no acreditan una ejecución remota de JCoorp. Los resultados nuevos se registrarán en `ESTADO_VERIFICADO.json` con sus propios enlaces y commits.
+
+## Pipeline y alcance de la actividad
+
+El proyecto Flutter está en la **raíz del repositorio**: `pubspec.yaml`, `lib/`, `test/`, `sonar-project.properties` y `coverage/lcov.info`. Los comandos no se ejecutan desde `app/`.
+
+| Etapa | Qué se comprueba |
+| --- | --- |
+| Checkout y configuración | Descarga el SHA real de la rama fuente del PR y verifica los identificadores y secretos obligatorios. |
+| Entorno y dependencias | Configura Flutter 3.32.0 y ejecuta `flutter pub get`. |
+| Análisis estático Flutter | `flutter analyze --no-fatal-infos --no-fatal-warnings`: los errores bloquean; información y advertencias no bloquean en este comando. |
+| Pruebas y cobertura | `flutter test --coverage` y LCOV no vacío. La suite contiene pruebas unitarias y de widgets. |
+| Compilación | `flutter build web --no-web-resources-cdn --target lib/main.dart`; produce `build/web`. |
+| SonarQube | Analiza `lib/` y `test/` en SonarQube Cloud e importa `coverage/lcov.info`. |
+| Quality Gate | Espera la tarea del scanner y consulta el resultado de su `analysisId`. Solo `OK` permite continuar. |
+| Artefacto | Conserva el paquete validado como `snackup-integrated-web`. |
+| Notificación de fallo | Un job independiente se ejecuta ante `failure` y exige el acuse real de Slack o Discord. |
+
+**Fail Fast:** el primer error detiene las siguientes etapas de validación. La auditoría y la notificación se conservan para comunicar el fallo. Una etapa omitida no se presenta como aprobada.
+
+**CI** valida cambios y genera el artefacto. **Continuous Delivery** prepara un despliegue con aprobación manual para producción; **Continuous Deployment** lo ejecuta automáticamente. Esta actividad implementa CI y sus avisos; no incluye despliegue a producción.
+
+## Configuración en JCoorp
+
+Abrir [Settings → Secrets and variables → Actions](https://github.com/JCoorp/SnackUP-core/settings/secrets/actions) y configurar en **este repositorio**:
+
+| Tipo | Nombre | Valor |
+| --- | --- | --- |
+| Repository secret | `SONAR_TOKEN` | Token real con permiso para analizar y consultar el proyecto SonarQube. |
+| Repository secret | `CI_FAILURE_WEBHOOK_URL` | Webhook real del canal Slack o Discord del equipo. |
+| Repository variable opcional | `SONAR_ORGANIZATION` | Valor por defecto: `jcoorp`. |
+| Repository variable opcional | `SONAR_PROJECT_KEY` | Valor por defecto: `JCoorp_SnackUP-core`. |
+| Repository variable opcional | `SONAR_HOST_URL` | Valor por defecto: `https://sonarcloud.io`. |
+
+El proyecto SonarQube debe estar vinculado a **JCoorp/SnackUP-core**, con acceso de la app SonarQubeCloud a ese repositorio y análisis mediante CI habilitado. El workflow usa PR hacia la rama principal para este escenario. No convertir artificialmente una feature en `main` mediante `sonar.branch.name`.
+
+Los tokens y el webhook se guardan únicamente como secretos. No incluirlos en el código, capturas, video ni documentación. Las claves de organización y proyecto son identificadores públicos. SonarQube se consulta con el identificador del análisis de esta ejecución; un resultado de otro commit no sustituye su Quality Gate.
+
+## Cómo se acredita la notificación
+
+El mensaje incluye SnackUP, rama, commit, primera etapa fallida, ID/intento de ejecución y enlace al registro.
+
+- **Discord:** el notificador añade `wait=true` y exige el ID del mensaje creado.
+- **Slack:** exige HTTP 200 y cuerpo de respuesta `ok`.
+- Una configuración ausente, un error HTTP o una respuesta inesperada genera un resultado fallido.
+- Un pipeline aprobado no envía un aviso de fallo.
+
+`DELIVERED` significa aceptación del mensaje por el servidor del proveedor. No significa que una persona lo haya leído. Se guardan `snackup-ci-audit` con los resultados de CI/SonarQube y `snackup-ci-notification` con el acuse público. El paquete de aplicación aprobado se conserva por separado como `snackup-integrated-web`.
+
+## Obtener las dos ejecuciones reales
+
+1. Guardar los secretos en JCoorp y abrir un PR de `feature/ci-sonar-notifications` hacia `main`. Mantener `docs/ci-parte-2/failure-test.json` con `"enabled": false`. Esperar a que pruebas, compilación, SonarQube, Quality Gate y artefacto aprueben. Conservar el ID de esta ejecución.
+2. Cambiar únicamente el marcador a `"enabled": true` y hacer commit en la misma rama. Tras aprobar SonarQube y el Gate, la etapa de fallo controlado debe detener el empaquetado. El job de notificación debe terminar correctamente con acuse `DELIVERED`. Conservar el ID de esta ejecución.
+3. Restaurar `"enabled": false` mediante un commit y comprobar que la rama vuelve a validar normalmente. El marcador permanece desactivado en la entrega final.
+
+El fallo controlado está limitado a la rama de evidencia autorizada y el aviso lo identifica expresamente. Si falla la configuración, el scanner, el Gate o el webhook, debe corregirse esa causa antes de grabar la demostración prevista.
+
+Usar **Re-run all jobs** cuando sea necesario reintentar: tarea Sonar, auditoría y recibo deben corresponder al mismo `run_attempt`. No mezclar ejecuciones de repositorios, commits o intentos diferentes.
+
+## Generar el video y entregar
+
+Después de obtener ambos IDs reales en JCoorp, crear `docs/ci-parte-2/evidence-runs.json` con las claves `success_run` y `failure_run`. Cada valor debe ser el ID real de su ejecución. Hacer commit de ese archivo en la rama de evidencia activa el workflow **SnackUP CI parte 2 - video de evidencia real**.
+
+El recolector verifica repositorio, SHA, run/intento, análisis SonarQube y recibo de la notificación. El grabador utiliza la interfaz del agente y reconstruye las etapas según sus tiempos originales. La reproducción es acelerada; no se presenta como una ejecución en vivo.
+
+El artefacto `snackup-ci-part2-video` contendrá:
+
+- `SnackUP_Pipeline_CI_Parte2.mp4`: 80 segundos, H.264, 1600 × 1000.
+- Capturas del análisis, Gate, fallo y notificación, y cierre aprobado.
+- JSON de las ejecuciones y manifiesto con enlaces y hashes SHA-256.
+
+El video muestra primero el fallo con su alerta y termina con el CI aprobado. Para la entrega, adjuntar ese MP4 y el [enlace de la rama de JCoorp](https://github.com/JCoorp/SnackUP-core/tree/feature/ci-sonar-notifications). La entrega se considera completa después de verificar los dos requisitos en los servicios reales y registrar las fuentes en `ESTADO_VERIFICADO.json`.
+
+## Archivos y comprobación del código
+
+| Archivo | Función |
+| --- | --- |
+| `.github/workflows/flutter-ci.yml` | CI, scanner, Gate y aviso independiente. |
+| `sonar-project.properties` | Fuentes Dart, pruebas, exclusiones y cobertura LCOV desde la raíz. |
+| `tools/ci_sonar/quality_gate.py` | Consulta la tarea exacta y bloquea un Gate sin aprobación. Lee `.scannerwork/report-task.txt` desde la raíz. |
+| `tools/ci_notifications/notify_failure.py` | Envía el aviso y comprueba su acuse sin revelar secretos. |
+| `tools/ci_evidence/collect_part2.py` | Verifica la procedencia de los resultados reales. |
+| `tools/ci_evidence/record_part2.cjs` | Genera el video con estados y tiempos observados. |
+| `tools/ci_agent/web/` | Interfaz gráfica del agente usada por el grabador. |
+
+```bash
+python3 -m unittest discover -s tools/ci_notifications/tests -v
+python3 -m unittest discover -s tools/ci_sonar/tests -v
+python3 -m unittest discover -s tools/ci_evidence/tests -v
+node --test tools/ci_evidence/test_record_part2.cjs
+```
+
+Estas pruebas comprueban la implementación con respuestas simuladas; no envían mensajes ni sustituyen una ejecución SonarQube. El workflow **SnackUP CI parte 2 - verificar implementación** vuelve a ejecutarlas en el repositorio de esta entrega.
+
+Referencias oficiales: [análisis Dart](https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/languages/dart), [cobertura Dart](https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/test-coverage/dart-test-coverage), [webhooks Slack](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/) y [webhooks Discord](https://docs.discord.com/developers/resources/webhook#execute-webhook).

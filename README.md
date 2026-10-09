@@ -1,3 +1,16 @@
+# SnackUP · Pipeline CI con SonarQube y Discord
+
+Versión integrada de SnackUP en Flutter y Firebase, con un agente que muestra las etapas de CI y explica los fallos.
+
+- [Instrucciones, configuración y estado de la evidencia](docs/ci-parte-2/README.md).
+- [Pipeline Flutter, SonarQube, Quality Gate y alerta](.github/workflows/flutter-ci.yml).
+- [Agente gráfico](tools/ci_agent/README.md).
+- [Generador del video a partir de ejecuciones reales](tools/ci_evidence/README_VIDEO.md).
+
+El análisis y la alerta requieren los secretos `SONAR_TOKEN` y `CI_FAILURE_WEBHOOK_URL` de este repositorio. La entrega se valida con un análisis real y un mensaje confirmado por Discord. Consulta el estado de verificación antes de entregar el video.
+
+---
+
 # SnackUP-Core `v1.0`
 
 ![SnackUP Banner](https://img.shields.io/badge/SnackUP-Official_Production_Repo-orange?style=for-the-badge&logo=fastapi)
@@ -104,3 +117,4 @@ lib/
 <p align="center">
 Desarrollado con ❤️ por el equipo de <strong>SnackUP</strong>
 </p>
+
