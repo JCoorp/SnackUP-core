@@ -7,7 +7,7 @@ Versión integrada de SnackUP en Flutter y Firebase, con un agente que muestra l
 - [Agente gráfico](tools/ci_agent/README.md).
 - [Generador del video a partir de ejecuciones reales](tools/ci_evidence/README_VIDEO.md).
 
-[CI real aprobado](https://github.com/JCoorp/SnackUP-core/actions/runs/37871800187): **188 pruebas**, compilación Web, **SonarQube y Quality Gate OK**, cobertura nueva **86.5%**. [Fallo real y aviso Discord verificados](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221) en el intento 2. Los secretos `SONAR_TOKEN` y `CI_FAILURE_WEBHOOK_URL` permanecen fuera del código. El video se genera a partir de estas ejecuciones verificables.
+[CI real aprobado](https://github.com/JCoorp/SnackUP-core/actions/runs/37871800187): **188 pruebas**, compilación Web, **SonarQube y Quality Gate OK**, cobertura nueva **86.5%**. [Fallo real y aviso Discord verificados](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221) en el intento 2. Los secretos `SONAR_TOKEN` y `CI_FAILURE_WEBHOOK_URL` permanecen fuera del código. [Video generado y verificado, de 80 segundos](https://github.com/JCoorp/SnackUP-core/actions/runs/37872594393), con SonarQube, aviso Discord y cierre aprobado.
 
 ---
 

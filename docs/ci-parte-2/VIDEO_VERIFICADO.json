@@ -1,0 +1,65 @@
+{
+  "duration_seconds": 80,
+  "resolution": "1600x1000",
+  "type": "Reproducción acelerada de ejecuciones reales",
+  "successful_run": "https://github.com/JCoorp/SnackUP-core/actions/runs/37871800187",
+  "failed_run": "https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221",
+  "sonar_analysis_id": "f8e237f6-803f-463e-a71f-8320d1cb607e",
+  "quality_gate": "OK",
+  "notification": {
+    "status": "DELIVERED",
+    "timestamp_utc": "2026-10-09T01:31:56+00:00",
+    "acknowledgement": "discord_created_message",
+    "commit": "d9aaa8211954b101565d60c2088f8943d94f7f11",
+    "delivery_scope": "server_acknowledgement_only",
+    "provider": "discord",
+    "repository": "JCoorp/SnackUP-core",
+    "controlled_failure": false,
+    "failed_stage": "gate",
+    "channel_id": "1557912573247234231",
+    "run_attempt": "2",
+    "message_id": "1557928573833052170",
+    "run_id": "37869730221",
+    "run_url": "https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221",
+    "http_status": 200,
+    "http_code": 200,
+    "notification_stage_id": "gh-113626329580-3"
+  },
+  "browser_errors": [],
+  "all_stages_fit": {
+    "failure": {
+      "height": 483,
+      "content": 717,
+      "rows": 19,
+      "all_fit": false,
+      "scroll_follows_actual_stage": true
+    },
+    "success": {
+      "height": 483,
+      "content": 569,
+      "rows": 15,
+      "all_fit": false,
+      "scroll_follows_actual_stage": true
+    }
+  },
+  "input_sha256": {
+    "success": "6fab48a1a0853eb699c11d308eaf75f7da631f34a0f61256972407dfe68f6381",
+    "failure": "22d16084900a8e8d1967dec8b9c7ed95acf97adf16440dad04421ffdeb195a9d"
+  },
+  "video_sha256": "943fd88a00a23d6cb84e0da00576d3ed303793d5565f187f827951a30ed7c7f5",
+  "generation_run_id": 37872594393,
+  "generation_run_url": "https://github.com/JCoorp/SnackUP-core/actions/runs/37872594393",
+  "generation_commit": "588f48e72d3a34eb57df77fd58f86c266e4214a1",
+  "artifact_id": 11590069295,
+  "verification": {
+    "duration_seconds": 80.0,
+    "codec": "h264",
+    "resolution": "1600x1000",
+    "frame_rate": "30/1",
+    "frame_count": 2400,
+    "sha256_matches": true,
+    "browser_errors": 0,
+    "key_frames_visually_reviewed": 4,
+    "final_frame": "APPROVED_PIPELINE_AND_VALIDATED_ARTIFACT"
+  }
+}

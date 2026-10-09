@@ -8,7 +8,7 @@ El repositorio de esta entrega es [JCoorp/SnackUP-core](https://github.com/JCoor
 
 [La ejecución real fallida 37869730221, intento 2](https://github.com/JCoorp/SnackUP-core/actions/runs/37869730221) había aprobado 59 pruebas Flutter y la compilación. SonarQube rechazó su Gate por cobertura nueva de 45.0% frente al 80% requerido: se bloqueó el artefacto y **Discord confirmó el mensaje con HTTP 200 e ID público**. Este fallo real y el nuevo CI aprobado son las fuentes del video. Los secretos ya están verificados y el marcador de fallo controlado permanece desactivado.
 
-[Las 50 pruebas de implementación aprobaron en GitHub Actions de JCoorp](https://github.com/JCoorp/SnackUP-core/actions/runs/37869702571). La nueva regresión del grabador eleva la suite a **52 pruebas**, aprobadas localmente y pendientes de su nueva ejecución remota. La generación del video está en curso; `ESTADO_VERIFICADO.json` registra los resultados observados.
+[Las **52 pruebas de implementación** aprobaron en GitHub Actions](https://github.com/JCoorp/SnackUP-core/actions/runs/37872594372): notificador, consulta SonarQube, procedencia de evidencia y grabador. [El video de 80 segundos ya fue generado y verificado](https://github.com/JCoorp/SnackUP-core/actions/runs/37872594393). Muestra el fallo real y su aviso, y termina con el CI aprobado. `ESTADO_VERIFICADO.json` y `VIDEO_VERIFICADO.json` conservan los enlaces, IDs y hashes de los resultados observados.
 
 ## Pipeline y alcance de la actividad
 
@@ -73,13 +73,13 @@ Los dos IDs verificados ya se han guardado en `docs/ci-parte-2/evidence-runs.jso
 
 El recolector verifica repositorio, SHA, run/intento, análisis SonarQube y recibo de la notificación. El grabador utiliza la interfaz del agente y reconstruye las etapas según sus tiempos originales. La reproducción es acelerada; no se presenta como una ejecución en vivo.
 
-El artefacto `snackup-ci-part2-video` contendrá:
+[El artefacto `snackup-ci-part2-video` de la ejecución 37872594393](https://github.com/JCoorp/SnackUP-core/actions/runs/37872594393) contiene:
 
 - `SnackUP_Pipeline_CI_Parte2.mp4`: 80 segundos, H.264, 1600 × 1000.
 - Capturas del análisis, Gate, fallo y notificación, y cierre aprobado.
 - JSON de las ejecuciones y manifiesto con enlaces y hashes SHA-256.
 
-El video muestra primero el fallo con su alerta y termina con el CI aprobado. Para la entrega, adjuntar ese MP4 y el [enlace de la rama de JCoorp](https://github.com/JCoorp/SnackUP-core/tree/feature/ci-sonar-notifications). La entrega se considera completa después de verificar los dos requisitos en los servicios reales y registrar las fuentes en `ESTADO_VERIFICADO.json`.
+El video muestra primero el fallo con su alerta y termina con el CI aprobado. Para la entrega, adjuntar ese MP4 y el [enlace de la rama de JCoorp](https://github.com/JCoorp/SnackUP-core/tree/feature/ci-sonar-notifications). Los dos requisitos ya están verificados en los servicios reales y sus fuentes constan en `ESTADO_VERIFICADO.json`. La grabación fue revisada visualmente y su SHA-256 coincide con `VIDEO_VERIFICADO.json`.
 
 ## Archivos y comprobación del código
 
