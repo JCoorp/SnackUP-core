@@ -207,10 +207,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         height: 280,
                         width: double.infinity,
                         color: AppColors.componentBase,
-                        child: Image.network(
-                          imageUrl.isNotEmpty
-                              ? imageUrl
-                              : 'https://via.placeholder.com/400x280',
+                        child: imageUrl.isEmpty
+                            ? const Center(
+                                child: Icon(Icons.fastfood_rounded, size: 80),
+                              )
+                            : Image.network(
+                            imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(

@@ -29,7 +29,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    admin_demo.main();
+    await tester.pumpWidget(const admin_demo.SnackUpAdminDemo());
     await tester.pumpAndSettle();
     expect(find.text('DEMO · DATOS SIMULADOS'), findsOneWidget);
     expect(find.text('Cafetería Central'), findsWidgets);

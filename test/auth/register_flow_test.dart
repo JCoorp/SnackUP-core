@@ -341,7 +341,12 @@ void main() {
         await fillRegistration(tester);
         await acceptRegistrationTerms(tester);
         await submitRegistration(tester);
+        // Replacing only MaterialApp.home preserves its Navigator and pushed
+        // signup route. Remove the whole tree to exercise actual disposal.
+        await tester.pumpWidget(const SizedBox.shrink());
+        expect(find.byType(RegisterScreen), findsNothing);
         await tester.pumpWidget(const MaterialApp(home: Text('Otra pantalla')));
+        expect(find.text('Otra pantalla'), findsOneWidget);
         repository.registrationRequest!.complete();
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);

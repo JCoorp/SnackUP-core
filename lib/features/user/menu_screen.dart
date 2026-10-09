@@ -228,10 +228,12 @@ class MenuScreen extends StatelessWidget {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            imageUrl.isNotEmpty
-                                ? imageUrl
-                                : 'https://via.placeholder.com/100',
+                          child: imageUrl.isEmpty
+                            ? const Center(
+                                child: Icon(Icons.fastfood_rounded, size: 30),
+                              )
+                            : Image.network(
+                            imageUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Container(

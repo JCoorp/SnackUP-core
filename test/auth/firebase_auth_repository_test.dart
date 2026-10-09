@@ -143,16 +143,23 @@ void main() {
     final events = <SnackAccount?>[];
     final subscription = repository.watchAccount().listen(events.add);
     addTearDown(subscription.cancel);
+    // Firebase may emit initial state and repeat a state when a token changes.
+    // Verify the mapped identity for each transition instead of event counts.
+    await Future<void>.delayed(Duration.zero);
+    expect(events.where((account) => account != null), isEmpty);
+    events.clear();
     await repository.signIn('  Alumno@UTSJR.EDU.MX  ', '  secret password  ');
     await Future<void>.delayed(Duration.zero);
     expect(auth.signInEmail, 'alumno@utsjr.edu.mx');
     expect(auth.signInPassword, '  secret password  ');
-    expect(events.single?.uid, 'student-1');
+    expect(events, isNotEmpty);
+    expect(events.map((account) => account?.uid), everyElement('student-1'));
+    events.clear();
     await repository.signOut();
     await Future<void>.delayed(Duration.zero);
     expect(repository.currentAccount, isNull);
-    expect(events.length, 2);
-    expect(events.last, isNull);
+    expect(events, isNotEmpty);
+    expect(events, everyElement(isNull));
   });
 
   test('claims come from the current Firebase token', () async {

@@ -243,7 +243,12 @@ void main() {
       .set({...product(), 'price': 1.0, 'productId': 'taco',
         'quantity': 2, 'notes': 'Sin salsa'});
     await mount(tester, CartScreen(firestore: db, auth: auth));
-    await tapText(tester, 'Confirmar Pedido');
+    // The loading indicator intentionally remains active while the student
+    // confirms the quote. Advance the dialog transition without waiting for
+    // that indicator to stop before the confirmation can be tapped.
+    await tester.tap(find.text('Confirmar Pedido'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
     expect(find.textContaining('Los precios se actualizaron.'), findsOneWidget);
     expect(find.textContaining('Total actual: \$25.00.'), findsOneWidget);
     await tapText(tester, 'Confirmar');
@@ -347,7 +352,8 @@ void main() {
       .doc('taco').set({...product(), 'productId': 'taco',
         'addedAt': Timestamp.now()});
     await mount(tester, ProfileOrdersScreen(firestore: db, auth: auth));
-    expect(find.text('¡Listo!'), findsOneWidget);
+    // Ready appears in the status badge and in the final step of the tracker.
+    expect(find.text('¡Listo!'), findsNWidgets(2));
     expect(find.text('2x Taco'), findsOneWidget);
     await tapText(tester, 'Historial');
     expect(find.text('Completado'), findsOneWidget);

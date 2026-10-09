@@ -76,14 +76,15 @@ class _ObservedCollection extends Fake
 }
 
 class _ObservedQuery extends Fake implements Query<Map<String, dynamic>> {
-  _ObservedQuery(this.delegate, this.path, this.database);
+  _ObservedQuery(this.delegate, this.path, this.database, {this.pageLimit});
   final Query<Map<String, dynamic>> delegate;
   final String path;
   final _ObservedFirestore database;
+  final int? pageLimit;
 
   @override
   Query<Map<String, dynamic>> limit(int limit) =>
-      _ObservedQuery(delegate.limit(limit), path, database);
+      _ObservedQuery(delegate, path, database, pageLimit: limit);
 
   @override
   Query<Map<String, dynamic>> startAfterDocument(
@@ -92,6 +93,7 @@ class _ObservedQuery extends Fake implements Query<Map<String, dynamic>> {
     delegate.startAfterDocument(documentSnapshot),
     path,
     database,
+    pageLimit: pageLimit,
   );
 
   @override
@@ -102,7 +104,11 @@ class _ObservedQuery extends Fake implements Query<Map<String, dynamic>> {
     if (database.failingCollection == path) {
       throw FirebaseException(plugin: 'cloud_firestore', code: 'unavailable');
     }
-    return delegate.get(options);
+    // The 2.5.2 fake executes transformations in call order, whereas Firestore
+    // applies a cursor before its result limit regardless of method order.
+    // Defer only the fake's limit so it models the actual query contract.
+    final query = pageLimit == null ? delegate : delegate.limit(pageLimit!);
+    return query.get(options);
   }
 }
 
@@ -115,7 +121,10 @@ void main() {
   setUp(() {
     database = FakeFirebaseFirestore();
     session = _Session(_AdminUser());
-    repository = FirebaseAdminRepository(firestore: database, auth: session);
+    repository = FirebaseAdminRepository(
+      firestore: _ObservedFirestore(database),
+      auth: session,
+    );
   });
 
   Future<void> seedRows(String collection, int count) async {
@@ -205,7 +214,7 @@ void main() {
       expect(current.career, 'TI');
       expect(current.group, 'DS02');
       expect(current.comment, 'Comida fría');
-      expect(current.createdAt, recordedAt);
+      expect(current.createdAt!.isAtSameMomentAs(recordedAt), isTrue);
       final legacy = page.reviews.singleWhere((review) => review.id == 'legacy');
       expect(legacy.businessId, isEmpty);
       expect(legacy.rating, isNull);
@@ -218,7 +227,7 @@ void main() {
       expect(resolved.status, FollowupStatus.resolved);
       expect(resolved.assignee, 'Coordinación');
       expect(resolved.note, 'Acuerdo registrado');
-      expect(resolved.updatedAt, recordedAt);
+      expect(resolved.updatedAt!.isAtSameMomentAs(recordedAt), isTrue);
       final pending = page.followups.singleWhere((row) => row.reviewId == 'legacy');
       expect(pending.businessId, isEmpty);
       expect(pending.status, FollowupStatus.pending);
@@ -313,6 +322,7 @@ void main() {
 
     test('saved transitions preserve actor, trimmed text and immutable events', () async {
       for (final status in FollowupStatus.values) {
+        final beforeSave = DateTime.now();
         await repository.saveFollowup(AdminFollowup(
           reviewId: review.id,
           businessId: review.businessId,
@@ -320,6 +330,7 @@ void main() {
           assignee: '  Coordinación  ',
           note: '  Seguimiento ${status.code}  ',
         ));
+        final afterSave = DateTime.now();
         final current = await repository.getFollowup(review);
         expect(current.status, status);
         expect(current.assignee, 'Coordinación');
@@ -331,7 +342,18 @@ void main() {
         expect(snapshot.get('businessId'), review.businessId);
         final event = await snapshot.reference.collection('history').doc(snapshot.get('eventId') as String).get();
         expect(event.exists, isTrue);
-        expect(event.data(), snapshot.data());
+        // This fake resolves serverTimestamp separately for each batch write.
+        // Compare all durable fields and validate each server-generated date.
+        final eventValues = Map<String, dynamic>.from(event.data()!);
+        final currentValues = Map<String, dynamic>.from(snapshot.data()!);
+        final eventTime = eventValues.remove('updatedAt') as Timestamp;
+        final currentTime = currentValues.remove('updatedAt') as Timestamp;
+        expect(eventValues, currentValues);
+        for (final time in [eventTime, currentTime]) {
+          expect(time.toDate().isBefore(beforeSave), isFalse);
+          expect(time.toDate().isAfter(afterSave), isFalse);
+        }
+        expect(eventTime.toDate().isBefore(currentTime.toDate()), isFalse);
       }
       final history = await repository.getHistory(review.id);
       expect(history.events, hasLength(3));
@@ -360,7 +382,12 @@ void main() {
       expect(history.events.last.note, 'Evento 5');
       expect(history.events.first.reviewId, review.id);
       expect(history.events.first.status, FollowupStatus.inReview);
-      expect(history.events.first.updatedAt, recordedAt.add(const Duration(minutes: 54)));
+      expect(
+        history.events.first.updatedAt!.isAtSameMomentAs(
+          recordedAt.add(const Duration(minutes: 54)),
+        ),
+        isTrue,
+      );
     });
 
     test('exactly fifty events are a complete, ordered history', () async {
